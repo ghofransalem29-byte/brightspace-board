@@ -144,19 +144,23 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: "Inter Tight", ui-sans-serif, system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-feature-settings: "ss01", "cv11", "ss03";
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.005em;
   }
 
   .font-display {
     font-family: "Instrument Serif", ui-serif, Georgia, serif;
     font-weight: 400;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 
   .font-mono-ui {
     font-family: "JetBrains Mono", ui-monospace, monospace;
-    font-feature-settings: "ss01";
+    font-feature-settings: "ss01", "ss02";
+    font-weight: 500;
   }
 }
 
