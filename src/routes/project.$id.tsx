@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Tag as TagIcon, Check } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Tag as TagIcon, Check, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getProject, updateProject, deleteProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -26,11 +26,27 @@ function ProjectCanvas() {
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | undefined>(undefined);
   const [hydrated, setHydrated] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [presenting, setPresenting] = useState(false);
 
   useEffect(() => {
     setProject(getProject(id));
     setHydrated(true);
   }, [id]);
+
+  useEffect(() => {
+    if (!presenting) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPresenting(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [presenting]);
 
   const patch = (changes: Partial<Project>) => {
     if (!project) return;
@@ -80,6 +96,13 @@ function ProjectCanvas() {
               {images.length.toString().padStart(2, "0")} images · {project.palette.length.toString().padStart(2, "0")} colors
             </span>
             <button
+              onClick={() => setPresenting(true)}
+              className="font-mono-ui inline-flex items-center gap-2 border border-foreground bg-foreground px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Present</span>
+            </button>
+            <button
               onClick={() => {
                 if (confirm("Delete this board?")) {
                   deleteProject(project.id);
@@ -98,7 +121,12 @@ function ProjectCanvas() {
 
       <main className="mx-auto max-w-[1400px] px-6 py-12 sm:px-8">
         <PaletteBuilder palette={project.palette} onChange={(palette) => patch({ palette })} />
-        <ImageBoard images={images} onChange={(next) => patch({ images: next })} />
+        <ImageBoard
+          images={images}
+          onChange={(next) => patch({ images: next })}
+          activeTag={activeTag}
+          setActiveTag={setActiveTag}
+        />
       </main>
 
       <footer className="border-t border-border">
@@ -107,6 +135,96 @@ function ProjectCanvas() {
           <span>Atelier · Auto-saved</span>
         </div>
       </footer>
+
+      {presenting && (
+        <PresentationView
+          project={project}
+          images={
+            activeTag ? images.filter((i) => (i.tags ?? []).includes(activeTag)) : images
+          }
+          activeTag={activeTag}
+          onClose={() => setPresenting(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------ Presentation ------------------------------ */
+
+function PresentationView({
+  project,
+  images,
+  activeTag,
+  onClose,
+}: {
+  project: Project;
+  images: BoardImage[];
+  activeTag: string | null;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 animate-fade-in overflow-y-auto bg-background">
+      <button
+        onClick={onClose}
+        aria-label="Exit presentation (Esc)"
+        className="fixed right-6 top-6 z-10 inline-flex h-11 w-11 items-center justify-center border border-foreground bg-background/80 text-foreground backdrop-blur transition-all hover:scale-105 hover:bg-foreground hover:text-background"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <div className="fixed bottom-6 left-1/2 z-10 -translate-x-1/2 font-mono-ui text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+        Esc to exit
+      </div>
+
+      <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col items-center justify-center gap-16 px-8 py-24">
+        <header className="flex flex-col items-center gap-3 text-center">
+          <p className="font-mono-ui text-[11px] uppercase tracking-[0.3em] text-muted-foreground">
+            {activeTag ? `Filtered · ${activeTag}` : "Presenting"}
+          </p>
+          <h1 className="font-display text-[clamp(2.5rem,6vw,5rem)] leading-[0.95]">{project.title}</h1>
+        </header>
+
+        {project.palette.length > 0 && (
+          <div className="flex w-full max-w-3xl justify-center">
+            <div className="grid w-full grid-cols-4 gap-px border border-border bg-border sm:grid-cols-6 md:grid-cols-8">
+              {project.palette.map((c, i) => (
+                <div key={c + i} className="aspect-square" style={{ backgroundColor: c }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {images.length === 0 ? (
+          <p className="font-display text-2xl text-muted-foreground">No images to present.</p>
+        ) : (
+          <div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {images.map((img, i) => (
+              <figure
+                key={img.id}
+                className="animate-fade-in"
+                style={{
+                  animationDelay: `${Math.min(120 + i * 60, 600)}ms`,
+                  animationFillMode: "backwards",
+                }}
+              >
+                <div className="shadow-premium relative aspect-[4/5] overflow-hidden border border-border bg-secondary">
+                  <img
+                    src={img.src}
+                    alt={img.caption ?? ""}
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                {img.caption && (
+                  <figcaption className="font-mono-ui mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {img.caption}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
