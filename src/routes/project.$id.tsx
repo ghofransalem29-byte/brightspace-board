@@ -377,12 +377,21 @@ function AddSwatch({
 
 /* ------------------------------- Image Board ------------------------------- */
 
-function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (next: BoardImage[]) => void }) {
+function ImageBoard({
+  images,
+  onChange,
+  activeTag,
+  setActiveTag,
+}: {
+  images: BoardImage[];
+  onChange: (next: BoardImage[]) => void;
+  activeTag: string | null;
+  setActiveTag: (t: string | null) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
