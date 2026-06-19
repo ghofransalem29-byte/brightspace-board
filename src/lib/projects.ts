@@ -21,6 +21,14 @@ export interface Project {
   palette: string[];
   createdAt: number;
   cards: BoardCard[];
+  images?: BoardImage[];
+}
+
+export interface BoardImage {
+  id: string;
+  src: string;
+  caption?: string;
+  addedAt: number;
 }
 
 const KEY = "moodboard.projects.v1";
