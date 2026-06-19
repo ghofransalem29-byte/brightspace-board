@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Tag as TagIcon, Check } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getProject, updateProject, deleteProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -264,6 +264,8 @@ function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (nex
   const [urlInput, setUrlInput] = useState("");
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const addImage = (src: string, cap?: string) => {
@@ -272,11 +274,31 @@ function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (nex
       src,
       caption: cap,
       addedAt: Date.now(),
+      tags: [],
     };
     onChange([img, ...images]);
   };
 
   const remove = (id: string) => onChange(images.filter((i) => i.id !== id));
+
+  const updateTags = (id: string, tags: string[]) => {
+    onChange(images.map((i) => (i.id === id ? { ...i, tags } : i)));
+  };
+
+  const allTags = useMemo(() => {
+    const counts = new Map<string, number>();
+    images.forEach((img) => (img.tags ?? []).forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)));
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [images]);
+
+  const filtered = useMemo(
+    () => (activeTag ? images.filter((i) => (i.tags ?? []).includes(activeTag)) : images),
+    [images, activeTag],
+  );
+
+  useEffect(() => {
+    if (activeTag && !allTags.some(([t]) => t === activeTag)) setActiveTag(null);
+  }, [activeTag, allTags]);
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -335,6 +357,34 @@ function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (nex
         </div>
       </div>
 
+      {(allTags.length > 0 || images.length > 0) && images.length > 0 && (
+        <div className="mb-8 flex flex-wrap items-center gap-2 border-t border-border pt-6">
+          <span className="font-mono-ui mr-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Filter
+          </span>
+          <FilterPill
+            label="All"
+            count={images.length}
+            active={activeTag === null}
+            onClick={() => setActiveTag(null)}
+          />
+          {allTags.map(([tag, count]) => (
+            <FilterPill
+              key={tag}
+              label={tag}
+              count={count}
+              active={activeTag === tag}
+              onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+            />
+          ))}
+          {allTags.length === 0 && (
+            <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Tag images to build filters
+            </span>
+          )}
+        </div>
+      )}
+
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -357,10 +407,36 @@ function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (nex
             <p className="font-display text-2xl">Drop images, or click to upload.</p>
             <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em]">JPG · PNG · WEBP · GIF</p>
           </button>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-secondary/40 py-24 text-center">
+            <p className="font-display text-3xl">No images tagged “{activeTag}”.</p>
+            <button
+              onClick={() => setActiveTag(null)}
+              className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground underline hover:text-foreground"
+            >
+              Clear filter
+            </button>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {images.map((img, i) => (
-              <ImageCard key={img.id} image={img} index={i + 1} onRemove={() => remove(img.id)} />
+          <div
+            key={activeTag ?? "all"}
+            className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {filtered.map((img, i) => (
+              <ImageCard
+                key={img.id}
+                image={img}
+                index={i + 1}
+                stagger={i}
+                allTags={allTags.map(([t]) => t)}
+                editing={editingTagsFor === img.id}
+                onStartEdit={() => setEditingTagsFor(img.id)}
+                onEndEdit={() => setEditingTagsFor(null)}
+                onRemove={() => remove(img.id)}
+                onTagsChange={(tags) => updateTags(img.id, tags)}
+                onTagClick={(t) => setActiveTag(activeTag === t ? null : t)}
+                activeTag={activeTag}
+              />
             ))}
           </div>
         )}
@@ -415,10 +491,76 @@ function ImageBoard({ images, onChange }: { images: BoardImage[]; onChange: (nex
   );
 }
 
-function ImageCard({ image, index, onRemove }: { image: BoardImage; index: number; onRemove: () => void }) {
-  const [broken, setBroken] = useState(false);
+function FilterPill({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
-    <figure className="group relative">
+    <button
+      onClick={onClick}
+      className={`font-mono-ui inline-flex items-center gap-2 border px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] transition-colors ${
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border bg-background text-foreground hover:bg-secondary"
+      }`}
+    >
+      <span>{label}</span>
+      <span className={active ? "text-background/70" : "text-muted-foreground"}>
+        {count.toString().padStart(2, "0")}
+      </span>
+    </button>
+  );
+}
+
+function ImageCard({
+  image,
+  index,
+  stagger,
+  allTags,
+  editing,
+  onStartEdit,
+  onEndEdit,
+  onRemove,
+  onTagsChange,
+  onTagClick,
+  activeTag,
+}: {
+  image: BoardImage;
+  index: number;
+  stagger: number;
+  allTags: string[];
+  editing: boolean;
+  onStartEdit: () => void;
+  onEndEdit: () => void;
+  onRemove: () => void;
+  onTagsChange: (tags: string[]) => void;
+  onTagClick: (tag: string) => void;
+  activeTag: string | null;
+}) {
+  const [broken, setBroken] = useState(false);
+  const [draft, setDraft] = useState("");
+  const tags = image.tags ?? [];
+
+  const addTag = (raw: string) => {
+    const t = raw.trim().replace(/^#/, "");
+    if (!t || tags.includes(t)) return;
+    onTagsChange([...tags, t]);
+    setDraft("");
+  };
+  const removeTag = (t: string) => onTagsChange(tags.filter((x) => x !== t));
+
+  return (
+    <figure
+      className="group relative animate-fade-in"
+      style={{ animationDelay: `${Math.min(stagger * 40, 320)}ms`, animationFillMode: "backwards" }}
+    >
       <div className="shadow-premium group-hover:shadow-premium-hover relative aspect-[4/5] overflow-hidden border border-border bg-secondary transition-shadow duration-500">
         {!broken ? (
           <img
@@ -433,18 +575,132 @@ function ImageCard({ image, index, onRemove }: { image: BoardImage; index: numbe
             Image unavailable
           </div>
         )}
-        <button
-          onClick={onRemove}
-          aria-label="Remove image"
-          className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center border border-foreground bg-background/90 text-foreground opacity-0 backdrop-blur transition-opacity duration-200 hover:bg-foreground hover:text-background group-hover:opacity-100"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+
+        <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <button
+            onClick={onStartEdit}
+            aria-label="Edit tags"
+            className="inline-flex h-8 w-8 items-center justify-center border border-foreground bg-background/90 text-foreground backdrop-blur hover:bg-foreground hover:text-background"
+          >
+            <TagIcon className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onRemove}
+            aria-label="Remove image"
+            className="inline-flex h-8 w-8 items-center justify-center border border-foreground bg-background/90 text-foreground backdrop-blur hover:bg-foreground hover:text-background"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {tags.length > 0 && !editing && (
+          <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-1">
+            {tags.slice(0, 3).map((t) => (
+              <button
+                key={t}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onTagClick(t);
+                }}
+                className={`font-mono-ui border px-2 py-1 text-[9px] uppercase tracking-[0.18em] backdrop-blur transition-colors ${
+                  activeTag === t
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-foreground/40 bg-background/85 text-foreground hover:bg-foreground hover:text-background"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+            {tags.length > 3 && (
+              <span className="font-mono-ui border border-foreground/40 bg-background/85 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-foreground backdrop-blur">
+                +{tags.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </div>
+
       <figcaption className="mt-3 flex items-baseline justify-between gap-4 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
         <span className="truncate">{image.caption ?? "Untitled"}</span>
         <span className="shrink-0">№ {index.toString().padStart(3, "0")}</span>
       </figcaption>
+
+      {editing && (
+        <div className="mt-3 animate-fade-in border border-foreground bg-background p-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em]">Tags</span>
+            <button
+              onClick={onEndEdit}
+              className="font-mono-ui inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            >
+              <Check className="h-3 w-3" /> Done
+            </button>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {tags.map((t) => (
+              <span
+                key={t}
+                className="font-mono-ui inline-flex items-center gap-1 border border-border bg-secondary px-2 py-1 text-[10px] uppercase tracking-[0.18em]"
+              >
+                {t}
+                <button
+                  onClick={() => removeTag(t)}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={`Remove ${t}`}
+                >
+                  <X className="h-2.5 w-2.5" />
+                </button>
+              </span>
+            ))}
+            {tags.length === 0 && (
+              <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                No tags yet
+              </span>
+            )}
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addTag(draft);
+            }}
+            className="mt-3 flex items-center gap-2 border border-border"
+          >
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Furniture, Lighting…"
+              className="font-mono-ui w-full bg-transparent px-2 py-1.5 text-[11px] uppercase tracking-[0.18em] outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="submit"
+              className="font-mono-ui shrink-0 border-l border-border bg-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground"
+            >
+              Add
+            </button>
+          </form>
+          {allTags.filter((t) => !tags.includes(t)).length > 0 && (
+            <div className="mt-3">
+              <p className="font-mono-ui mb-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+                Quick add
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {allTags
+                  .filter((t) => !tags.includes(t))
+                  .map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => addTag(t)}
+                      className="font-mono-ui border border-border bg-background px-2 py-1 text-[10px] uppercase tracking-[0.18em] hover:bg-foreground hover:text-background"
+                    >
+                      + {t}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </figure>
   );
 }
