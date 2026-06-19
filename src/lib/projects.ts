@@ -29,6 +29,7 @@ export interface BoardImage {
   src: string;
   caption?: string;
   addedAt: number;
+  tags?: string[];
 }
 
 const KEY = "moodboard.projects.v1";
