@@ -650,10 +650,6 @@ function ImageCard({
   image,
   index,
   stagger,
-  allTags,
-  editing,
-  onStartEdit,
-  onEndEdit,
   onRemove,
   onTagsChange,
   onTagClick,
@@ -662,10 +658,6 @@ function ImageCard({
   image: BoardImage;
   index: number;
   stagger: number;
-  allTags: string[];
-  editing: boolean;
-  onStartEdit: () => void;
-  onEndEdit: () => void;
   onRemove: () => void;
   onTagsChange: (tags: string[]) => void;
   onTagClick: (tag: string) => void;
@@ -705,13 +697,6 @@ function ImageCard({
 
         <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
           <button
-            onClick={onStartEdit}
-            aria-label="Edit tags"
-            className="inline-flex h-8 w-8 items-center justify-center border border-foreground bg-background/90 text-foreground backdrop-blur hover:bg-foreground hover:text-background"
-          >
-            <TagIcon className="h-3.5 w-3.5" />
-          </button>
-          <button
             onClick={onRemove}
             aria-label="Remove image"
             className="inline-flex h-8 w-8 items-center justify-center border border-foreground bg-background/90 text-foreground backdrop-blur hover:bg-foreground hover:text-background"
@@ -719,32 +704,6 @@ function ImageCard({
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
-
-        {tags.length > 0 && !editing && (
-          <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-1">
-            {tags.slice(0, 3).map((t) => (
-              <button
-                key={t}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onTagClick(t);
-                }}
-                className={`font-mono-ui border px-2 py-1 text-[9px] uppercase tracking-[0.18em] backdrop-blur transition-colors ${
-                  activeTag === t
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-foreground/40 bg-background/85 text-foreground hover:bg-foreground hover:text-background"
-                }`}
-              >
-                {t}
-              </button>
-            ))}
-            {tags.length > 3 && (
-              <span className="font-mono-ui border border-foreground/40 bg-background/85 px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-foreground backdrop-blur">
-                +{tags.length - 3}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       <figcaption className="mt-3 flex items-baseline justify-between gap-4 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -752,82 +711,48 @@ function ImageCard({
         <span className="shrink-0">№ {index.toString().padStart(3, "0")}</span>
       </figcaption>
 
-      {editing && (
-        <div className="mt-3 animate-fade-in border border-foreground bg-background p-3">
-          <div className="flex items-center justify-between">
-            <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em]">Tags</span>
-            <button
-              onClick={onEndEdit}
-              className="font-mono-ui inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-            >
-              <Check className="h-3 w-3" /> Done
-            </button>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1">
-            {tags.map((t) => (
-              <span
-                key={t}
-                className="font-mono-ui inline-flex items-center gap-1 border border-border bg-secondary px-2 py-1 text-[10px] uppercase tracking-[0.18em]"
-              >
-                {t}
-                <button
-                  onClick={() => removeTag(t)}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label={`Remove ${t}`}
-                >
-                  <X className="h-2.5 w-2.5" />
-                </button>
-              </span>
-            ))}
-            {tags.length === 0 && (
-              <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                No tags yet
-              </span>
-            )}
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addTag(draft);
-            }}
-            className="mt-3 flex items-center gap-2 border border-border"
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {tags.map((t) => (
+          <span
+            key={t}
+            className={`font-mono-ui inline-flex items-center gap-1 border px-2 py-1 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+              activeTag === t
+                ? "border-foreground bg-foreground text-background"
+                : "border-border bg-secondary text-foreground"
+            }`}
           >
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Furniture, Lighting…"
-              className="font-mono-ui w-full bg-transparent px-2 py-1.5 text-[11px] uppercase tracking-[0.18em] outline-none placeholder:text-muted-foreground"
-            />
             <button
-              type="submit"
-              className="font-mono-ui shrink-0 border-l border-border bg-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground"
+              type="button"
+              onClick={() => onTagClick(t)}
+              className="hover:underline"
             >
-              Add
+              {t}
             </button>
-          </form>
-          {allTags.filter((t) => !tags.includes(t)).length > 0 && (
-            <div className="mt-3">
-              <p className="font-mono-ui mb-1 text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-                Quick add
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {allTags
-                  .filter((t) => !tags.includes(t))
-                  .map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => addTag(t)}
-                      className="font-mono-ui border border-border bg-background px-2 py-1 text-[10px] uppercase tracking-[0.18em] hover:bg-foreground hover:text-background"
-                    >
-                      + {t}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => removeTag(t)}
+              aria-label={`Remove ${t}`}
+              className={activeTag === t ? "text-background/70 hover:text-background" : "text-muted-foreground hover:text-foreground"}
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          </span>
+        ))}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addTag(draft);
+          }}
+          className="inline-flex"
+        >
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add tag…"
+            className="font-mono-ui w-24 border-b border-dashed border-border bg-transparent px-1 py-1 text-[10px] uppercase tracking-[0.18em] outline-none placeholder:text-muted-foreground focus:w-32 focus:border-solid focus:border-foreground"
+          />
+        </form>
+      </div>
     </figure>
   );
 }
