@@ -102,15 +102,13 @@ export function useProjects() {
     const { data: userData } = await supabase.auth.getUser();
     const uid = userData.user?.id;
     if (!uid) return null;
-    const palette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
     const { data, error } = await supabase
       .from("projects")
       .insert({
         user_id: uid,
         title: title || "Untitled Board",
         description: "A new visual exploration.",
-        cover: palette[2],
-        palette,
+        palette: [],
       })
       .select("*")
       .single();
