@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { extractDominantColors } from "@/lib/extract-colors";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/project/$id")({
   head: ({ params }) => ({
@@ -91,6 +93,17 @@ function ProjectCanvas() {
               <span className="hidden sm:inline">Present</span>
             </button>
             <button
+              onClick={() => {
+                toast.success("Moodboard published", {
+                  description: `“${project.title}” has been saved. Your changes are live.`,
+                });
+              }}
+              className="font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground hover:text-background"
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Publish</span>
+            </button>
+            <button
               onClick={async () => {
                 setShareOpen(true);
                 setCopied(false);
@@ -123,7 +136,21 @@ function ProjectCanvas() {
         <PaletteBuilder palette={project.palette} onChange={(palette) => patch({ palette })} />
         <ImageBoard
           images={images}
-          onUploadFile={uploadFile}
+          onUploadFile={async (file) => {
+            // Extract dominant colors in parallel with the upload, then
+            // auto-update the palette top-row with the detected swatches.
+            const [img, colors] = await Promise.all([
+              uploadFile(file),
+              extractDominantColors(file, 5).catch(() => [] as string[]),
+            ]);
+            if (colors.length > 0) {
+              await patch({ palette: colors });
+              toast("Palette updated", {
+                description: `Extracted ${colors.length} dominant colors from your upload.`,
+              });
+            }
+            return img;
+          }}
           onAddUrl={addByUrl}
           onRemoveImage={removeImage}
           onUpdateTags={updateImageTags}
