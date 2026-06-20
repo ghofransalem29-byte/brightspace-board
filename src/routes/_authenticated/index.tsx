@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, ArrowUpRight, LogOut } from "lucide-react";
+import { Plus, ArrowUpRight, LogOut, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -20,7 +20,7 @@ function formatDate(ts: number) {
 }
 
 function Dashboard() {
-  const { projects, loaded, create } = useProjects();
+  const { projects, loaded, create, remove } = useProjects();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
@@ -117,7 +117,7 @@ function Dashboard() {
             </button>
 
             {projects.map((p, i) => (
-              <ProjectCard key={p.id} project={p} index={i + 1} />
+              <ProjectCard key={p.id} project={p} index={i + 1} onDelete={remove} />
             ))}
           </div>
         </div>
@@ -169,8 +169,15 @@ function Dashboard() {
   );
 }
 
-function ProjectCard({ project, index }: { project: Project; index: number }) {
+function ProjectCard({ project, index, onDelete }: { project: Project; index: number; onDelete: (id: string) => void | Promise<void> }) {
   const palette = project.palette.length > 0 ? project.palette : ["#1a1a1a", "#3a3a3a", "#7a7a7a", "#d4d4d4"];
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm(`Delete "${project.title}"? This cannot be undone.`)) {
+      onDelete(project.id);
+    }
+  };
   return (
     <Link
       to="/project/$id"
@@ -183,6 +190,13 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
         }}
       />
+      <button
+        onClick={handleDelete}
+        aria-label="Delete board"
+        className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center border border-border bg-background/90 text-muted-foreground opacity-0 transition-all hover:border-foreground hover:bg-background hover:text-foreground group-hover:opacity-100"
+      >
+        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
+      </button>
       <div className="relative flex items-start justify-between">
         <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-background mix-blend-difference">
           № {index.toString().padStart(3, "0")}
