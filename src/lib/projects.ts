@@ -9,6 +9,7 @@ export interface Project {
   palette: string[];
   createdAt: number;
   imageCount?: number;
+  shareToken?: string | null;
 }
 
 export interface BoardImage {
@@ -37,6 +38,7 @@ type ProjectRow = {
   cover: string;
   palette: string[];
   created_at: string;
+  share_token?: string | null;
   moodboard_items?: { count: number }[] | { count: number };
 };
 
@@ -50,6 +52,7 @@ function rowToProject(r: ProjectRow): Project {
     palette: r.palette ?? [],
     createdAt: new Date(r.created_at).getTime(),
     imageCount: counts[0]?.count ?? 0,
+    shareToken: r.share_token ?? null,
   };
 }
 
@@ -171,6 +174,18 @@ export function useProject(id: string) {
     if (error) console.error(error);
   }, [id]);
 
+  const enableShare = useCallback(async (): Promise<string | null> => {
+    if (project?.shareToken) return project.shareToken;
+    const token = crypto.randomUUID();
+    const { error } = await supabase.from("projects").update({ share_token: token }).eq("id", id);
+    if (error) {
+      console.error(error);
+      return null;
+    }
+    setProject((cur) => (cur ? { ...cur, shareToken: token } : cur));
+    return token;
+  }, [id, project?.shareToken]);
+
   const insertItem = useCallback(
     async (row: { src: string; storage_path?: string | null; caption?: string | null }) => {
       const { data: userData } = await supabase.auth.getUser();
@@ -257,5 +272,6 @@ export function useProject(id: string) {
     addByUrl,
     removeImage,
     updateImageTags,
+    enableShare,
   };
 }

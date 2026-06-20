@@ -62,6 +62,7 @@ export type Database = {
           description: string
           id: string
           palette: string[]
+          share_token: string | null
           title: string
           updated_at: string
           user_id: string
@@ -72,6 +73,7 @@ export type Database = {
           description?: string
           id?: string
           palette?: string[]
+          share_token?: string | null
           title?: string
           updated_at?: string
           user_id: string
@@ -82,6 +84,7 @@ export type Database = {
           description?: string
           id?: string
           palette?: string[]
+          share_token?: string | null
           title?: string
           updated_at?: string
           user_id?: string
