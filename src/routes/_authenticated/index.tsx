@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, ArrowUpRight, LogOut, Trash2 } from "lucide-react";
+import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,6 +25,34 @@ function Dashboard() {
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const toggleSelected = (id: string) => {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelect = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    if (!confirm(`Delete ${selected.size} board${selected.size > 1 ? "s" : ""}? This cannot be undone.`)) return;
+    await Promise.all(Array.from(selected).map((id) => remove(id)));
+    exitSelect();
+  };
+
+  const toggleAll = () => {
+    if (selected.size === projects.length) setSelected(new Set());
+    else setSelected(new Set(projects.map((p) => p.id)));
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,12 +124,53 @@ function Dashboard() {
         <div className="mx-auto max-w-[1400px] px-8 py-12">
           <div className="mb-8 flex items-end justify-between border-b border-border pb-4">
             <h2 className="font-mono-ui text-[11px] uppercase tracking-[0.2em]">Your Boards</h2>
-            <span className="font-mono-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              Last updated · {loaded && projects[0] ? formatDate(projects[0].createdAt) : "—"}
-            </span>
+            <div className="flex items-center gap-4">
+              {selectMode ? (
+                <>
+                  <span className="font-mono-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    {selected.size.toString().padStart(2, "0")} selected
+                  </span>
+                  <button
+                    onClick={toggleAll}
+                    className="font-mono-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+                  >
+                    {selected.size === projects.length && projects.length > 0 ? "Clear all" : "Select all"}
+                  </button>
+                  <button
+                    onClick={deleteSelected}
+                    disabled={selected.size === 0}
+                    className="font-mono-ui inline-flex items-center gap-1.5 border border-foreground bg-foreground px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Trash2 className="h-3 w-3" strokeWidth={1.5} /> Delete
+                  </button>
+                  <button
+                    onClick={exitSelect}
+                    aria-label="Exit select mode"
+                    className="inline-flex h-7 w-7 items-center justify-center border border-border text-muted-foreground hover:bg-foreground hover:text-background"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="font-mono-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Last updated · {loaded && projects[0] ? formatDate(projects[0].createdAt) : "—"}
+                  </span>
+                  {projects.length > 0 && (
+                    <button
+                      onClick={() => setSelectMode(true)}
+                      className="font-mono-ui inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
+                    >
+                      <CheckSquare className="h-3 w-3" strokeWidth={1.5} /> Select
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-3 border border-border">
+            {!selectMode && (
             <button
               onClick={() => setCreating(true)}
               className="group relative flex aspect-[4/5] flex-col justify-between bg-background p-6 text-left transition-colors hover:bg-foreground hover:text-background"
@@ -115,9 +184,18 @@ function Dashboard() {
                 <p className="mt-2 text-xs opacity-70">Start with a blank canvas.</p>
               </div>
             </button>
+            )}
 
             {projects.map((p, i) => (
-              <ProjectCard key={p.id} project={p} index={i + 1} onDelete={remove} />
+              <ProjectCard
+                key={p.id}
+                project={p}
+                index={i + 1}
+                onDelete={remove}
+                selectMode={selectMode}
+                isSelected={selected.has(p.id)}
+                onToggleSelect={toggleSelected}
+              />
             ))}
           </div>
         </div>
