@@ -247,7 +247,21 @@ function Dashboard() {
   );
 }
 
-function ProjectCard({ project, index, onDelete }: { project: Project; index: number; onDelete: (id: string) => void | Promise<void> }) {
+function ProjectCard({
+  project,
+  index,
+  onDelete,
+  selectMode,
+  isSelected,
+  onToggleSelect,
+}: {
+  project: Project;
+  index: number;
+  onDelete: (id: string) => void | Promise<void>;
+  selectMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
+}) {
   const palette = project.palette.length > 0 ? project.palette : ["#1a1a1a", "#3a3a3a", "#7a7a7a", "#d4d4d4"];
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -256,6 +270,43 @@ function ProjectCard({ project, index, onDelete }: { project: Project; index: nu
       onDelete(project.id);
     }
   };
+  if (selectMode) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggleSelect(project.id)}
+        className={`group relative flex aspect-[4/5] flex-col justify-between overflow-hidden p-6 text-left transition-colors ${
+          isSelected ? "bg-foreground text-background" : "bg-background hover:bg-secondary"
+        }`}
+      >
+        <div
+          className={`absolute inset-x-6 top-6 h-1/2 transition-opacity ${isSelected ? "opacity-30" : "opacity-100"}`}
+          style={{
+            background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
+          }}
+        />
+        <div className="relative flex items-start justify-between">
+          <span className={`font-mono-ui text-[10px] uppercase tracking-[0.2em] ${isSelected ? "" : "text-background mix-blend-difference"}`}>
+            № {index.toString().padStart(3, "0")}
+          </span>
+          {isSelected ? (
+            <CheckSquare className="h-5 w-5" strokeWidth={1.5} />
+          ) : (
+            <Square className="h-5 w-5 text-background mix-blend-difference" strokeWidth={1.5} />
+          )}
+        </div>
+        <div className="relative">
+          <div className="mb-3 flex gap-1">
+            {project.palette.map((c) => (
+              <span key={c} className="h-3 w-3 border border-border" style={{ backgroundColor: c }} />
+            ))}
+          </div>
+          <h3 className="font-display text-3xl leading-tight">{project.title}</h3>
+          <p className={`mt-2 line-clamp-2 text-xs ${isSelected ? "opacity-70" : "text-muted-foreground"}`}>{project.description}</p>
+        </div>
+      </button>
+    );
+  }
   return (
     <Link
       to="/project/$id"
