@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Tag as TagIcon, Check, Maximize2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getProject, updateProject, deleteProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -392,7 +392,6 @@ function ImageBoard({
   const [urlInput, setUrlInput] = useState("");
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
-  const [editingTagsFor, setEditingTagsFor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const addImage = (src: string, cap?: string) => {
@@ -555,10 +554,6 @@ function ImageBoard({
                 image={img}
                 index={i + 1}
                 stagger={i}
-                allTags={allTags.map(([t]) => t)}
-                editing={editingTagsFor === img.id}
-                onStartEdit={() => setEditingTagsFor(img.id)}
-                onEndEdit={() => setEditingTagsFor(null)}
                 onRemove={() => remove(img.id)}
                 onTagsChange={(tags) => updateTags(img.id, tags)}
                 onTagClick={(t) => setActiveTag(activeTag === t ? null : t)}
