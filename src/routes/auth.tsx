@@ -209,6 +209,20 @@ function AuthPage() {
                 {mode === "signin" ? "Create one" : "Sign in"}
               </button>
             </p>
+
+            <div className="mt-8 border-t border-white/10 pt-6 text-center">
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/guest" })}
+                className="font-mono-ui inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/55 transition-colors hover:text-[#d4a574]"
+              >
+                Continue as guest
+                <span aria-hidden>→</span>
+              </button>
+              <p className="font-mono-ui mt-2 text-[9px] uppercase tracking-[0.22em] text-white/30">
+                Try a single-image canvas · nothing saved
+              </p>
+            </div>
           </div>
         </section>
       </div>
