@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      moodboard_items: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          project_id: string
+          src: string
+          storage_path: string | null
+          tags: string[]
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          project_id: string
+          src: string
+          storage_path?: string | null
+          tags?: string[]
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          project_id?: string
+          src?: string
+          storage_path?: string | null
+          tags?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moodboard_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          cover: string
+          created_at: string
+          description: string
+          id: string
+          palette: string[]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover?: string
+          created_at?: string
+          description?: string
+          id?: string
+          palette?: string[]
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover?: string
+          created_at?: string
+          description?: string
+          id?: string
+          palette?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
