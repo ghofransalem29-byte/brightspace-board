@@ -149,6 +149,55 @@ function ProjectCanvas() {
           onClose={() => setPresenting(false)}
         />
       )}
+      {shareOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+          onClick={() => setShareOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg border border-border bg-background p-8 shadow-2xl"
+          >
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Share</p>
+                <h2 className="mt-1 font-display text-2xl">View-only link</h2>
+              </div>
+              <button
+                onClick={() => setShareOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Anyone with this link can view this board. They cannot edit or delete anything.
+            </p>
+            <div className="flex items-stretch gap-2">
+              <input
+                readOnly
+                value={shareUrl ?? "Generating link..."}
+                onFocus={(e) => e.currentTarget.select()}
+                className="min-w-0 flex-1 border border-border bg-muted/30 px-3 py-2 font-mono-ui text-xs outline-none focus:border-foreground"
+              />
+              <button
+                disabled={!shareUrl}
+                onClick={async () => {
+                  if (!shareUrl) return;
+                  await navigator.clipboard.writeText(shareUrl);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="font-mono-ui inline-flex items-center gap-2 border border-foreground bg-foreground px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground disabled:opacity-50"
+              >
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
