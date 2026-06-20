@@ -393,6 +393,7 @@ function ImageBoard({
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const addImage = (src: string, cap?: string) => {
     const img: BoardImage = {
@@ -403,6 +404,7 @@ function ImageBoard({
       tags: [],
     };
     onChange([img, ...images]);
+    setJustAddedId(img.id);
   };
 
   const remove = (id: string) => onChange(images.filter((i) => i.id !== id));
@@ -558,6 +560,8 @@ function ImageBoard({
                 onTagsChange={(tags) => updateTags(img.id, tags)}
                 onTagClick={(t) => setActiveTag(activeTag === t ? null : t)}
                 activeTag={activeTag}
+                justAdded={justAddedId === img.id}
+                onDismissPrompt={() => setJustAddedId((cur) => (cur === img.id ? null : cur))}
               />
             ))}
           </div>
@@ -649,6 +653,8 @@ function ImageCard({
   onTagsChange,
   onTagClick,
   activeTag,
+  justAdded,
+  onDismissPrompt,
 }: {
   image: BoardImage;
   index: number;
@@ -657,9 +663,12 @@ function ImageCard({
   onTagsChange: (tags: string[]) => void;
   onTagClick: (tag: string) => void;
   activeTag: string | null;
+  justAdded?: boolean;
+  onDismissPrompt?: () => void;
 }) {
   const [broken, setBroken] = useState(false);
   const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const tags = image.tags ?? [];
 
   const addTag = (raw: string) => {
@@ -667,8 +676,13 @@ function ImageCard({
     if (!t || tags.includes(t)) return;
     onTagsChange([...tags, t]);
     setDraft("");
+    onDismissPrompt?.();
   };
   const removeTag = (t: string) => onTagsChange(tags.filter((x) => x !== t));
+
+  useEffect(() => {
+    if (justAdded) inputRef.current?.focus();
+  }, [justAdded]);
 
   return (
     <figure
@@ -706,6 +720,12 @@ function ImageCard({
         <span className="shrink-0">№ {index.toString().padStart(3, "0")}</span>
       </figcaption>
 
+      {justAdded && (
+        <div className="mt-3 animate-fade-in border border-foreground bg-foreground px-3 py-2 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-background">
+          Add a tag to this image?
+        </div>
+      )}
+
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         {tags.map((t) => (
           <span
@@ -741,10 +761,14 @@ function ImageCard({
           className="inline-flex"
         >
           <input
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Add tag…"
-            className="font-mono-ui w-24 border-b border-dashed border-border bg-transparent px-1 py-1 text-[10px] uppercase tracking-[0.18em] outline-none placeholder:text-muted-foreground focus:w-32 focus:border-solid focus:border-foreground"
+            onBlur={() => { if (!draft) onDismissPrompt?.(); }}
+            placeholder={justAdded ? "Furniture, Lighting…" : "Add tag…"}
+            className={`font-mono-ui border-b bg-transparent px-1 py-1 text-[10px] uppercase tracking-[0.18em] outline-none placeholder:text-muted-foreground focus:border-solid focus:border-foreground ${
+              justAdded ? "w-40 border-solid border-foreground" : "w-24 border-dashed border-border focus:w-32"
+            }`}
           />
         </form>
       </div>
