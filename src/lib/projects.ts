@@ -150,7 +150,12 @@ export function useProject(id: string) {
   const patch = useCallback(
     async (changes: Partial<Pick<Project, "title" | "description" | "cover" | "palette">>) => {
       setProject((cur) => (cur ? { ...cur, ...changes } : cur));
-      const dbPatch: Record<string, unknown> = {};
+      const dbPatch: {
+        title?: string;
+        description?: string;
+        cover?: string;
+        palette?: string[];
+      } = {};
       if (changes.title !== undefined) dbPatch.title = changes.title;
       if (changes.description !== undefined) dbPatch.description = changes.description;
       if (changes.cover !== undefined) dbPatch.cover = changes.cover;
