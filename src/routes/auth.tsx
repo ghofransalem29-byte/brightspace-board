@@ -274,5 +274,3 @@ function GoogleGlyph() {
     </svg>
   );
 }
-  );
-}
