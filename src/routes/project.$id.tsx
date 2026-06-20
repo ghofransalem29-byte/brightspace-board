@@ -393,6 +393,7 @@ function ImageBoard({
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   const addImage = (src: string, cap?: string) => {
     const img: BoardImage = {
@@ -403,6 +404,7 @@ function ImageBoard({
       tags: [],
     };
     onChange([img, ...images]);
+    setJustAddedId(img.id);
   };
 
   const remove = (id: string) => onChange(images.filter((i) => i.id !== id));
@@ -558,6 +560,8 @@ function ImageBoard({
                 onTagsChange={(tags) => updateTags(img.id, tags)}
                 onTagClick={(t) => setActiveTag(activeTag === t ? null : t)}
                 activeTag={activeTag}
+                justAdded={justAddedId === img.id}
+                onDismissPrompt={() => setJustAddedId((cur) => (cur === img.id ? null : cur))}
               />
             ))}
           </div>
