@@ -383,7 +383,7 @@ function Swatch({ color, index, onRemove }: { color: string; index: number; onRe
       <button
         onClick={onRemove}
         aria-label="Remove color"
-        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center border border-foreground bg-background text-foreground opacity-0 transition-opacity duration-200 hover:bg-foreground hover:text-background group-hover:opacity-100"
+        className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center border border-foreground bg-background text-foreground opacity-80 transition-opacity duration-200 hover:bg-foreground hover:text-background group-hover:opacity-100"
       >
         <X className="h-3 w-3" />
       </button>
