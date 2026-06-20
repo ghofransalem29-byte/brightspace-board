@@ -121,7 +121,13 @@ export function useProjects() {
     return project;
   }, []);
 
-  return { projects, loaded, create, refresh };
+  const remove = useCallback(async (projectId: string) => {
+    setProjects((cur) => cur.filter((p) => p.id !== projectId));
+    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+    if (error) console.error(error);
+  }, []);
+
+  return { projects, loaded, create, refresh, remove };
 }
 
 export function useProject(id: string) {
