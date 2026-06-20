@@ -108,7 +108,6 @@ export function useProjects() {
         user_id: uid,
         title: title || "Untitled Board",
         description: "A new visual exploration.",
-        cover: null,
         palette: [],
       })
       .select("*")
