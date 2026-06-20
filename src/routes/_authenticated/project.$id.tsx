@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getProject, updateProject, deleteProject, type Project, type BoardImage } from "@/lib/projects";
+import { useProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export const Route = createFileRoute("/project/$id")({
+export const Route = createFileRoute("/_authenticated/project/$id")({
   head: ({ params }) => ({
     meta: [
       { title: `Board · ${params.id} — Atelier` },
@@ -24,15 +24,9 @@ function normalizeHex(input: string): string | null {
 function ProjectCanvas() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const [project, setProject] = useState<Project | undefined>(undefined);
-  const [hydrated, setHydrated] = useState(false);
+  const { project, images, loaded, patch, remove, uploadFile, addByUrl, removeImage, updateImageTags } = useProject(id);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [presenting, setPresenting] = useState(false);
-
-  useEffect(() => {
-    setProject(getProject(id));
-    setHydrated(true);
-  }, [id]);
 
   useEffect(() => {
     if (!presenting) return;
@@ -48,14 +42,7 @@ function ProjectCanvas() {
     };
   }, [presenting]);
 
-  const patch = (changes: Partial<Project>) => {
-    if (!project) return;
-    const next = { ...project, ...changes };
-    setProject(next);
-    updateProject(project.id, changes);
-  };
-
-  if (!hydrated) return <div className="min-h-screen bg-background" />;
+  if (!loaded) return <div className="min-h-screen bg-background" />;
   if (!project) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
@@ -66,8 +53,6 @@ function ProjectCanvas() {
       </div>
     );
   }
-
-  const images = project.images ?? [];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -103,9 +88,9 @@ function ProjectCanvas() {
               <span className="hidden sm:inline">Present</span>
             </button>
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (confirm("Delete this board?")) {
-                  deleteProject(project.id);
+                  await remove();
                   navigate({ to: "/" });
                 }
               }}
@@ -123,7 +108,10 @@ function ProjectCanvas() {
         <PaletteBuilder palette={project.palette} onChange={(palette) => patch({ palette })} />
         <ImageBoard
           images={images}
-          onChange={(next) => patch({ images: next })}
+          onUploadFile={uploadFile}
+          onAddUrl={addByUrl}
+          onRemoveImage={removeImage}
+          onUpdateTags={updateImageTags}
           activeTag={activeTag}
           setActiveTag={setActiveTag}
         />
@@ -140,7 +128,7 @@ function ProjectCanvas() {
         <PresentationView
           project={project}
           images={
-            activeTag ? images.filter((i) => (i.tags ?? []).includes(activeTag)) : images
+            activeTag ? images.filter((i) => i.tags.includes(activeTag)) : images
           }
           activeTag={activeTag}
           onClose={() => setPresenting(false)}
@@ -251,7 +239,7 @@ function PaletteBuilder({ palette, onChange }: { palette: string[]; onChange: (p
     setError("");
   };
 
-  const remove = (c: string) => onChange(palette.filter((x) => x !== c));
+  const removeColor = (c: string) => onChange(palette.filter((x) => x !== c));
 
   return (
     <section className="border-b border-border pb-16">
@@ -265,10 +253,9 @@ function PaletteBuilder({ palette, onChange }: { palette: string[]; onChange: (p
         </p>
       </div>
 
-      {/* Swatches */}
       <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {palette.map((color, i) => (
-          <Swatch key={color + i} color={color} index={i} onRemove={() => remove(color)} />
+          <Swatch key={color + i} color={color} index={i} onRemove={() => removeColor(color)} />
         ))}
         <AddSwatch
           hex={hex}
@@ -299,8 +286,8 @@ function Swatch({ color, index, onRemove }: { color: string; index: number; onRe
         aria-label={`Copy ${color}`}
       />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-background/95 px-3 py-2 font-mono-ui text-[10px] uppercase tracking-[0.18em] text-foreground opacity-0 backdrop-blur transition-opacity duration-200 group-hover:opacity-100">
-          <span>{copied ? "Copied" : color}</span>
-          <span className="text-muted-foreground">№ {(index + 1).toString().padStart(2, "0")}</span>
+        <span>{copied ? "Copied" : color}</span>
+        <span className="text-muted-foreground">№ {(index + 1).toString().padStart(2, "0")}</span>
       </div>
       <button
         onClick={onRemove}
@@ -379,12 +366,18 @@ function AddSwatch({
 
 function ImageBoard({
   images,
-  onChange,
+  onUploadFile,
+  onAddUrl,
+  onRemoveImage,
+  onUpdateTags,
   activeTag,
   setActiveTag,
 }: {
   images: BoardImage[];
-  onChange: (next: BoardImage[]) => void;
+  onUploadFile: (file: File) => Promise<BoardImage | null>;
+  onAddUrl: (url: string, caption?: string) => Promise<BoardImage | null>;
+  onRemoveImage: (id: string) => Promise<void>;
+  onUpdateTags: (id: string, tags: string[]) => Promise<void>;
   activeTag: string | null;
   setActiveTag: (t: string | null) => void;
 }) {
@@ -392,63 +385,46 @@ function ImageBoard({
   const [urlInput, setUrlInput] = useState("");
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
-  const addImage = (src: string, cap?: string) => {
-    const img: BoardImage = {
-      id: `img-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-      src,
-      caption: cap,
-      addedAt: Date.now(),
-      tags: [],
-    };
-    onChange([img, ...images]);
-    setJustAddedId(img.id);
-  };
-
-  const remove = (id: string) => onChange(images.filter((i) => i.id !== id));
-
-  const updateTags = (id: string, tags: string[]) => {
-    onChange(images.map((i) => (i.id === id ? { ...i, tags } : i)));
-  };
-
   const allTags = useMemo(() => {
     const counts = new Map<string, number>();
-    images.forEach((img) => (img.tags ?? []).forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)));
+    images.forEach((img) => img.tags.forEach((t) => counts.set(t, (counts.get(t) ?? 0) + 1)));
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [images]);
 
   const filtered = useMemo(
-    () => (activeTag ? images.filter((i) => (i.tags ?? []).includes(activeTag)) : images),
+    () => (activeTag ? images.filter((i) => i.tags.includes(activeTag)) : images),
     [images, activeTag],
   );
 
   useEffect(() => {
     if (activeTag && !allTags.some(([t]) => t === activeTag)) setActiveTag(null);
-  }, [activeTag, allTags]);
+  }, [activeTag, allTags, setActiveTag]);
 
-  const handleFiles = (files: FileList | null) => {
-    if (!files) return;
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") {
-          addImage(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    let lastId: string | null = null;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      const img = await onUploadFile(file);
+      if (img) lastId = img.id;
+    }
+    setUploading(false);
+    if (lastId) setJustAddedId(lastId);
   };
 
-  const submitUrl = (e: React.FormEvent) => {
+  const submitUrl = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!urlInput.trim()) return;
-    addImage(urlInput.trim(), caption.trim() || undefined);
+    const img = await onAddUrl(urlInput.trim(), caption.trim() || undefined);
     setUrlInput("");
     setCaption("");
     setOpen(false);
+    if (img) setJustAddedId(img.id);
   };
 
   return (
@@ -461,9 +437,10 @@ function ImageBoard({
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => fileInput.current?.click()}
-            className="font-mono-ui inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground hover:text-background"
+            disabled={uploading}
+            className="font-mono-ui inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-[10px] uppercase tracking-[0.2em] hover:bg-foreground hover:text-background disabled:opacity-50"
           >
-            <Upload className="h-3.5 w-3.5" /> Upload
+            <Upload className="h-3.5 w-3.5" /> {uploading ? "Uploading…" : "Upload"}
           </button>
           <button
             onClick={() => setOpen(true)}
@@ -485,7 +462,7 @@ function ImageBoard({
         </div>
       </div>
 
-      {(allTags.length > 0 || images.length > 0) && images.length > 0 && (
+      {images.length > 0 && (
         <div className="mb-8 flex flex-wrap items-center gap-2 border-t border-border pt-6">
           <span className="font-mono-ui mr-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Filter
@@ -556,8 +533,8 @@ function ImageBoard({
                 image={img}
                 index={i + 1}
                 stagger={i}
-                onRemove={() => remove(img.id)}
-                onTagsChange={(tags) => updateTags(img.id, tags)}
+                onRemove={() => onRemoveImage(img.id)}
+                onTagsChange={(tags) => onUpdateTags(img.id, tags)}
                 onTagClick={(t) => setActiveTag(activeTag === t ? null : t)}
                 activeTag={activeTag}
                 justAdded={justAddedId === img.id}
@@ -669,7 +646,7 @@ function ImageCard({
   const [broken, setBroken] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const tags = image.tags ?? [];
+  const tags = image.tags;
 
   const addTag = (raw: string) => {
     const t = raw.trim().replace(/^#/, "");

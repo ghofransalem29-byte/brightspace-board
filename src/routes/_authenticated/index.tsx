@@ -1,16 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, ArrowUpRight } from "lucide-react";
+import { Plus, ArrowUpRight, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
       { title: "Atelier — Mood Boards & Visual Curation" },
       { name: "description", content: "A quiet, deliberate workspace for visual research and mood board curation." },
-      { property: "og:title", content: "Atelier — Mood Boards & Visual Curation" },
-      { property: "og:description", content: "A quiet, deliberate workspace for visual research and mood board curation." },
     ],
   }),
   component: Dashboard,
@@ -25,13 +24,22 @@ function Dashboard() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const project = create(title);
+    setBusy(true);
+    const project = await create(title);
+    setBusy(false);
+    if (!project) return;
     setCreating(false);
     setTitle("");
     navigate({ to: "/project/$id", params: { id: project.id } });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
   };
 
   return (
@@ -49,6 +57,13 @@ function Dashboard() {
               {projects.length.toString().padStart(2, "0")} Boards
             </span>
             <ThemeToggle />
+            <button
+              onClick={signOut}
+              aria-label="Sign out"
+              className="inline-flex h-9 w-9 items-center justify-center border border-border text-muted-foreground hover:bg-foreground hover:text-background"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -111,7 +126,7 @@ function Dashboard() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-8 py-6 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           <span>© Atelier Studio</span>
-          <span>Curated locally · {new Date().getFullYear()}</span>
+          <span>Curated in the cloud · {new Date().getFullYear()}</span>
         </div>
       </footer>
 
@@ -141,9 +156,10 @@ function Dashboard() {
               </button>
               <button
                 type="submit"
-                className="font-mono-ui inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-2 text-[11px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground"
+                disabled={busy}
+                className="font-mono-ui inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-2 text-[11px] uppercase tracking-[0.2em] text-background hover:bg-background hover:text-foreground disabled:opacity-50"
               >
-                Create <ArrowUpRight className="h-3 w-3" />
+                {busy ? "Creating…" : "Create"} <ArrowUpRight className="h-3 w-3" />
               </button>
             </div>
           </form>
@@ -154,6 +170,7 @@ function Dashboard() {
 }
 
 function ProjectCard({ project, index }: { project: Project; index: number }) {
+  const palette = project.palette.length > 0 ? project.palette : ["#1a1a1a", "#3a3a3a", "#7a7a7a", "#d4d4d4"];
   return (
     <Link
       to="/project/$id"
@@ -163,7 +180,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
       <div
         className="absolute inset-x-6 top-6 h-1/2"
         style={{
-          background: `linear-gradient(135deg, ${project.palette[0]} 0%, ${project.palette[1]} 40%, ${project.palette[2]} 75%, ${project.palette[3]} 100%)`,
+          background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
         }}
       />
       <div className="relative flex items-start justify-between">
@@ -188,7 +205,7 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         <h3 className="font-display text-3xl leading-tight">{project.title}</h3>
         <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{project.description}</p>
         <div className="mt-4 flex items-center justify-between font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          <span>{project.cards.length.toString().padStart(2, "0")} cards</span>
+          <span>{(project.imageCount ?? 0).toString().padStart(2, "0")} images</span>
           <span>{formatDate(project.createdAt)}</span>
         </div>
       </div>
