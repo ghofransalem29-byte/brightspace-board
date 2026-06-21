@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy, MessageCircle, Heart } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { extractDominantColors } from "@/lib/extract-colors";
+import { useBoardFeedback, relativeTime, type FeedbackEntry, type Reaction } from "@/lib/feedback";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/project/$id")({
@@ -32,6 +33,13 @@ function ProjectCanvas() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { reactions, feedback, loaded: fbLoaded, markAllSeen } = useBoardFeedback(project?.id);
+
+  const unseenCount = useMemo(
+    () => feedback.filter((f) => !f.seenByOwner).length,
+    [feedback],
+  );
 
   useEffect(() => {
     if (!presenting) return;
@@ -46,6 +54,10 @@ function ProjectCanvas() {
       document.body.style.overflow = prev;
     };
   }, [presenting]);
+
+  useEffect(() => {
+    if (feedbackOpen) markAllSeen();
+  }, [feedbackOpen, markAllSeen]);
 
   if (!loaded) return <div className="min-h-screen bg-background" />;
   if (!project) {
@@ -97,6 +109,18 @@ function ProjectCanvas() {
             >
               <Maximize2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Present</span>
+            </button>
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className="relative font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground hover:text-background"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Feedback</span>
+              {unseenCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 font-mono-ui text-[9px] font-bold text-white">
+                  {unseenCount}
+                </span>
+              )}
             </button>
             <button
               onClick={async () => {
@@ -219,6 +243,16 @@ function ProjectCanvas() {
             </div>
           </div>
         </div>
+      )}
+      {feedbackOpen && project && (
+        <FeedbackPanel
+          project={project}
+          images={images}
+          reactions={reactions}
+          feedback={feedback}
+          loaded={fbLoaded}
+          onClose={() => setFeedbackOpen(false)}
+        />
       )}
     </div>
   );
