@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      board_feedback: {
+        Row: {
+          body: string
+          client_id: string
+          client_name: string
+          created_at: string
+          decision: string | null
+          id: string
+          item_id: string | null
+          project_id: string
+          seen_by_owner: boolean
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          client_id: string
+          client_name?: string
+          created_at?: string
+          decision?: string | null
+          id?: string
+          item_id?: string | null
+          project_id: string
+          seen_by_owner?: boolean
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          client_name?: string
+          created_at?: string
+          decision?: string | null
+          id?: string
+          item_id?: string | null
+          project_id?: string
+          seen_by_owner?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_feedback_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "moodboard_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_feedback_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      board_reactions: {
+        Row: {
+          client_id: string
+          client_name: string
+          created_at: string
+          id: string
+          item_id: string
+          kind: string
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          client_name?: string
+          created_at?: string
+          id?: string
+          item_id: string
+          kind: string
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          client_name?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          kind?: string
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "board_reactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "moodboard_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "board_reactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       moodboard_items: {
         Row: {
           caption: string | null
@@ -96,7 +198,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_project_owner: { Args: { _project_id: string }; Returns: boolean }
+      is_project_shared: { Args: { _project_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

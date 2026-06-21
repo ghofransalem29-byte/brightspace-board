@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy, MessageCircle, Heart } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { extractDominantColors } from "@/lib/extract-colors";
+import { useBoardFeedback, relativeTime, type FeedbackEntry, type Reaction } from "@/lib/feedback";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/project/$id")({
@@ -32,6 +33,13 @@ function ProjectCanvas() {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { reactions, feedback, loaded: fbLoaded, markAllSeen } = useBoardFeedback(project?.id);
+
+  const unseenCount = useMemo(
+    () => feedback.filter((f) => !f.seenByOwner).length,
+    [feedback],
+  );
 
   useEffect(() => {
     if (!presenting) return;
@@ -46,6 +54,10 @@ function ProjectCanvas() {
       document.body.style.overflow = prev;
     };
   }, [presenting]);
+
+  useEffect(() => {
+    if (feedbackOpen) markAllSeen();
+  }, [feedbackOpen, markAllSeen]);
 
   if (!loaded) return <div className="min-h-screen bg-background" />;
   if (!project) {
@@ -97,6 +109,18 @@ function ProjectCanvas() {
             >
               <Maximize2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Present</span>
+            </button>
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              className="relative font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-foreground hover:bg-foreground hover:text-background"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Feedback</span>
+              {unseenCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 font-mono-ui text-[9px] font-bold text-white">
+                  {unseenCount}
+                </span>
+              )}
             </button>
             <button
               onClick={async () => {
@@ -219,6 +243,16 @@ function ProjectCanvas() {
             </div>
           </div>
         </div>
+      )}
+      {feedbackOpen && project && (
+        <FeedbackPanel
+          project={project}
+          images={images}
+          reactions={reactions}
+          feedback={feedback}
+          loaded={fbLoaded}
+          onClose={() => setFeedbackOpen(false)}
+        />
       )}
     </div>
   );
@@ -836,5 +870,187 @@ function ImageCard({
         </form>
       </div>
     </figure>
+  );
+}
+
+/* ------------------------------ Feedback Panel ----------------------------- */
+
+function FeedbackPanel({
+  project,
+  images,
+  reactions,
+  feedback,
+  loaded,
+  onClose,
+}: {
+  project: Project;
+  images: BoardImage[];
+  reactions: Reaction[];
+  feedback: FeedbackEntry[];
+  loaded: boolean;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const boardDecision = feedback.find((f) => f.decision && !f.itemId) ?? null;
+  const boardNotes = feedback.filter((f) => !f.itemId && !f.decision);
+  const status = boardDecision
+    ? boardDecision.decision === "approve"
+      ? { label: `Approved by ${boardDecision.clientName}`, tone: "text-emerald-600 dark:text-emerald-400 border-emerald-600/40 bg-emerald-500/5" }
+      : { label: `Changes requested by ${boardDecision.clientName}`, tone: "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/5" }
+    : { label: "Awaiting feedback", tone: "text-muted-foreground border-border" };
+
+  const perImage = images.map((img) => {
+    const rx = reactions.filter((r) => r.itemId === img.id);
+    const comments = feedback.filter((f) => f.itemId === img.id);
+    return {
+      image: img,
+      love: rx.filter((r) => r.kind === "love"),
+      pass: rx.filter((r) => r.kind === "pass"),
+      comments,
+    };
+  });
+
+  const active = perImage.filter((p) => p.love.length || p.pass.length || p.comments.length);
+  const shareUrl = project.shareToken ? `${window.location.origin}/share/${project.shareToken}` : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-stretch justify-end bg-foreground/40 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <aside
+        onClick={(e) => e.stopPropagation()}
+        className="flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-border bg-background shadow-2xl"
+      >
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-6 py-4 backdrop-blur">
+          <div>
+            <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">— Client feedback</p>
+            <h2 className="mt-1 font-display text-2xl">{project.title}</h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex h-9 w-9 items-center justify-center border border-border text-muted-foreground hover:bg-foreground hover:text-background"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+
+        <div className="space-y-8 px-6 py-6">
+          {/* Status */}
+          <section className={`border px-5 py-4 ${status.tone}`}>
+            <p className="font-mono-ui text-[10px] uppercase tracking-[0.22em]">Status</p>
+            <p className="mt-1 font-display text-xl leading-tight">{status.label}</p>
+            {boardDecision?.body && (
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{boardDecision.body}</p>
+            )}
+            {boardDecision && (
+              <p className="font-mono-ui mt-2 text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+                {relativeTime(boardDecision.createdAt)}
+              </p>
+            )}
+          </section>
+
+          {!loaded && (
+            <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Loading…</p>
+          )}
+
+          {/* Per image */}
+          <section>
+            <p className="font-mono-ui mb-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Per image</p>
+            {active.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No reactions or comments yet.</p>
+            ) : (
+              <div className="space-y-5">
+                {active.map(({ image, love, pass, comments }) => {
+                  const unseen = comments.some((c) => !c.seenByOwner);
+                  return (
+                    <div
+                      key={image.id}
+                      className={`flex gap-4 border p-3 ${unseen ? "border-rose-500/50 bg-rose-500/5" : "border-border"}`}
+                    >
+                      <img
+                        src={image.src}
+                        alt={image.caption ?? ""}
+                        className="h-20 w-20 shrink-0 border border-border object-cover"
+                        loading="lazy"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate font-display text-sm">{image.caption ?? "Untitled"}</p>
+                          <div className="flex shrink-0 items-center gap-3 font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Heart className="h-3 w-3 text-rose-500" /> {love.length.toString().padStart(2, "0")}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <X className="h-3 w-3" /> {pass.length.toString().padStart(2, "0")}
+                            </span>
+                          </div>
+                        </div>
+                        {love.length > 0 && (
+                          <p className="mt-1 text-[11px] text-muted-foreground">
+                            Loved by {love.map((r) => r.clientName).join(", ")}
+                          </p>
+                        )}
+                        {comments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {comments.map((c) => (
+                              <div key={c.id} className="border-l-2 border-border pl-3">
+                                <p className="font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                                  {c.clientName} · {relativeTime(c.createdAt)}
+                                </p>
+                                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Board notes (overall comments without decision) */}
+          {boardNotes.length > 0 && (
+            <section>
+              <p className="font-mono-ui mb-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Overall notes
+              </p>
+              <div className="space-y-4">
+                {boardNotes.map((c) => (
+                  <div key={c.id} className="border-l-2 border-border pl-3">
+                    <p className="font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      {c.clientName} · {relativeTime(c.createdAt)}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {shareUrl && (
+            <section className="border-t border-border pt-5">
+              <p className="font-mono-ui mb-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                Share link
+              </p>
+              <p className="break-all font-mono-ui text-xs text-foreground">{shareUrl}</p>
+            </section>
+          )}
+        </div>
+      </aside>
+    </div>
   );
 }
