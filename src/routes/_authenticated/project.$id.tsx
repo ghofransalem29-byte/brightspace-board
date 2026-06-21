@@ -6,6 +6,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { extractDominantColors } from "@/lib/extract-colors";
 import { useBoardFeedback, relativeTime, type FeedbackEntry, type Reaction } from "@/lib/feedback";
 import { toast } from "sonner";
+import { useIsPro } from "@/hooks/useSubscription";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/project/$id")({
   head: ({ params }) => ({
@@ -35,6 +38,9 @@ function ProjectCanvas() {
   const [copied, setCopied] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { reactions, feedback, loaded: fbLoaded, markAllSeen } = useBoardFeedback(project?.id);
+  const { isPro } = useIsPro();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeMsg, setUpgradeMsg] = useState<string | undefined>(undefined);
 
   const unseenCount = useMemo(
     () => feedback.filter((f) => !f.seenByOwner).length,
@@ -124,6 +130,24 @@ function ProjectCanvas() {
             </button>
             <button
               onClick={async () => {
+                if (!isPro && !project.shareToken) {
+                  // Free tier: only one active share link allowed
+                  const { data: u } = await supabase.auth.getUser();
+                  if (u.user) {
+                    const { data: others } = await supabase
+                      .from("projects")
+                      .select("id")
+                      .eq("user_id", u.user.id)
+                      .not("share_token", "is", null)
+                      .neq("id", project.id)
+                      .limit(1);
+                    if (others && others.length > 0) {
+                      setUpgradeMsg("Free accounts can have one active share link at a time. Upgrade to share unlimited boards.");
+                      setUpgradeOpen(true);
+                      return;
+                    }
+                  }
+                }
                 setShareOpen(true);
                 setCopied(false);
                 const token = project.shareToken ?? (await enableShare());
