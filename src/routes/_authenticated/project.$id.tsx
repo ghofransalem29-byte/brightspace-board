@@ -278,6 +278,12 @@ function ProjectCanvas() {
           onClose={() => setFeedbackOpen(false)}
         />
       )}
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        title="Unlock unlimited shares."
+        message={upgradeMsg}
+      />
     </div>
   );
 }
