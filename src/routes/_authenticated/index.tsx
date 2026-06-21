@@ -26,6 +26,57 @@ function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+/**
+ * A small SVG capsule that reads "PRO" in a crisp geometric face, with a
+ * sleek diagonal gradient that contrasts against surrounding mono icons.
+ */
+function ProBadge() {
+  return (
+    <svg
+      viewBox="0 0 44 18"
+      width="40"
+      height="16"
+      role="img"
+      aria-label="Pro"
+      className="shrink-0"
+    >
+      <defs>
+        <linearGradient id="pro-badge-fill" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="oklch(0.32 0.02 270)" />
+          <stop offset="55%" stopColor="oklch(0.14 0.006 270)" />
+          <stop offset="100%" stopColor="oklch(0.42 0.03 270)" />
+        </linearGradient>
+        <linearGradient id="pro-badge-text" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="oklch(0.99 0.004 85)" />
+          <stop offset="100%" stopColor="oklch(0.82 0.02 85)" />
+        </linearGradient>
+      </defs>
+      <rect
+        x="0.5"
+        y="0.5"
+        width="43"
+        height="17"
+        rx="8.5"
+        fill="url(#pro-badge-fill)"
+        stroke="oklch(0.18 0.008 270)"
+        strokeWidth="1"
+      />
+      <text
+        x="22"
+        y="13"
+        textAnchor="middle"
+        fontFamily="'JetBrains Mono', ui-monospace, monospace"
+        fontWeight="700"
+        fontSize="9"
+        letterSpacing="1.6"
+        fill="url(#pro-badge-text)"
+      >
+        PRO
+      </text>
+    </svg>
+  );
+}
+
 function Dashboard() {
   const { projects, loaded, create, remove } = useProjects();
   const navigate = useNavigate();
@@ -163,9 +214,10 @@ function Dashboard() {
             </span>
             <Link
               to="/billing"
-              className="font-mono-ui inline-flex items-center gap-1.5 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
+              aria-label={isPro ? "Pro plan — manage billing" : "Billing"}
+              className="font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
             >
-              {isPro ? <><Sparkles className="h-3 w-3" /> Pro</> : <>Billing</>}
+              {isPro ? <ProBadge /> : <>Billing</>}
             </Link>
             <ThemeToggle />
             <button
@@ -187,11 +239,9 @@ function Dashboard() {
                 — Index / Boards
               </p>
               <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] leading-[0.95]">
-                A quiet place
+                A quiet place to <em className="italic">collect</em>
                 <br />
-                to <em className="italic">collect</em> what
-                <br />
-                catches the eye.
+                what catches the eye.
               </h1>
             </div>
             <div className="col-span-12 flex flex-col justify-end lg:col-span-4">
