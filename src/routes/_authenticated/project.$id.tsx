@@ -841,14 +841,14 @@ function ImageCard({
       className="group relative animate-fade-in"
       style={{ animationDelay: `${Math.min(stagger * 40, 320)}ms`, animationFillMode: "backwards" }}
     >
-      <div className="shadow-premium group-hover:shadow-premium-hover relative aspect-[4/5] overflow-hidden border border-border bg-secondary transition-shadow duration-500">
+      <div className="shadow-premium group-hover:shadow-premium-hover relative aspect-[4/5] overflow-hidden border border-border bg-secondary transition-shadow duration-500 ease-out">
         {!broken ? (
           <img
             src={image.src}
             alt={image.caption ?? `Inspiration ${index}`}
             onError={() => setBroken(true)}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
