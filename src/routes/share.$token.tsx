@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Heart, X, MessageSquare, Check, Pencil, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Project, BoardImage } from "@/lib/projects";
+import { getStripeEnvironment, isPaymentsConfigured } from "@/lib/stripe";
 import {
   useBoardFeedback,
   useClientIdentity,
@@ -72,6 +73,7 @@ function SharedBoard() {
   const [activeImage, setActiveImage] = useState<BoardImage | null>(null);
   const [nameOpen, setNameOpen] = useState(false);
   const [nameEditOpen, setNameEditOpen] = useState(false);
+  const [ownerIsPro, setOwnerIsPro] = useState(false);
 
   const { identity, setName } = useClientIdentity();
   const { reactions, feedback, toggleReaction, addComment } = useBoardFeedback(project?.id);
@@ -119,6 +121,31 @@ function SharedBoard() {
       cancelled = true;
     };
   }, [token]);
+
+  // Fetch owner Pro status to decide whether to show the "Made with Atelier" badge
+  useEffect(() => {
+    if (!project?.id) return;
+    if (!isPaymentsConfigured()) {
+      setOwnerIsPro(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const env = getStripeEnvironment();
+        const { data } = await supabase.rpc("is_project_owner_pro", {
+          _project_id: project.id,
+          _env: env,
+        });
+        if (!cancelled) setOwnerIsPro(!!data);
+      } catch {
+        if (!cancelled) setOwnerIsPro(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [project?.id]);
 
   // First-visit name prompt
   useEffect(() => {
