@@ -720,7 +720,7 @@ function ImageBoard({
         }}
         className={`relative ${dragOver ? "ring-2 ring-foreground ring-offset-4 ring-offset-background" : ""}`}
       >
-        {images.length === 0 ? (
+        {images.length === 0 && pendingUploads === 0 ? (
           <button
             onClick={() => fileInput.current?.click()}
             className="group flex aspect-[16/7] w-full flex-col items-center justify-center gap-4 border border-dashed border-border bg-secondary/30 text-muted-foreground transition-colors hover:border-foreground hover:bg-secondary/60 hover:text-foreground"
@@ -736,7 +736,7 @@ function ImageBoard({
               JPG · PNG · WEBP · GIF · or paste a URL
             </p>
           </button>
-        ) : filtered.length === 0 ? (
+        ) : filtered.length === 0 && pendingUploads === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 border border-dashed border-border bg-secondary/30 py-20 text-center">
             <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
               — Filtered view
@@ -759,6 +759,9 @@ function ImageBoard({
             key={activeTag ?? "all"}
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
+            {Array.from({ length: pendingUploads }).map((_, i) => (
+              <ImageCardSkeleton key={`pending-${i}`} label="Uploading…" />
+            ))}
             {filtered.map((img, i) => (
               <ImageCard
                 key={img.id}
