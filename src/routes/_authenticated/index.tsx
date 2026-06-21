@@ -464,7 +464,7 @@ function ProjectCard({
       params={{ id: project.id }}
       className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden bg-background p-6 transition-colors hover:bg-secondary"
     >
-      <div className="absolute inset-x-6 top-6 h-1/2 transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+      <div className="shadow-premium group-hover:shadow-premium-hover absolute inset-x-6 top-6 h-1/2 overflow-hidden transition-[transform,box-shadow] duration-500 ease-out group-hover:scale-[1.04]">
         <BoardPreview thumbs={thumbs} palette={palette} title={project.title} />
       </div>
       <button
