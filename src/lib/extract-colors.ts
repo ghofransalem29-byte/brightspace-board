@@ -71,32 +71,59 @@ export async function extractDominantColors(file: File, count = 5): Promise<stri
     const depth = count <= 4 ? 3 : count <= 8 ? 3 : 4;
     const buckets = medianCut(pixels, depth).filter((p) => p.length > 0);
 
-    // Average each bucket and compute a score that favors populous clusters
-    // but gives a small boost to saturated colors so accents aren't lost.
+    // Average each bucket. Track frequency (population) and saturation
+    // separately so we can reserve one slot for a vivid accent that may
+    // be small in area but visually striking.
     const clusters = buckets.map((p) => {
       let r = 0, g = 0, b = 0;
       for (const px of p) { r += px[0]; g += px[1]; b += px[2]; }
       r /= p.length; g /= p.length; b /= p.length;
       const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
       const sat = mx === 0 ? 0 : (mx - mn) / mx;
-      const score = p.length * (1 + sat * 0.6);
-      return { r, g, b, n: p.length, score };
+      return { r, g, b, n: p.length, sat };
     });
 
-    clusters.sort((a, b) => b.score - a.score);
+    const tooClose = (
+      a: { r: number; g: number; b: number },
+      b: { r: number; g: number; b: number },
+    ) => Math.hypot(a.r - b.r, a.g - b.g, a.b - b.b) < 24;
 
-    // De-dupe clusters that are perceptually very close
-    const out: string[] = [];
+    // Reserve the last slot for an accent. Pick (count - 1) dominant
+    // colors by raw frequency first, then choose the most saturated
+    // color from what's left as the accent.
+    const dominantSlots = Math.max(1, count - 1);
+    const byFrequency = [...clusters].sort((a, b) => b.n - a.n);
+
     const picked: Array<{ r: number; g: number; b: number }> = [];
-    for (const c of clusters) {
-      const tooClose = picked.some(
-        (p) => Math.hypot(p.r - c.r, p.g - c.g, p.b - c.b) < 24
-      );
-      if (tooClose) continue;
+    const out: string[] = [];
+    for (const c of byFrequency) {
+      if (picked.some((p) => tooClose(p, c))) continue;
       picked.push(c);
       out.push(toHex(c.r, c.g, c.b));
-      if (out.length >= count) break;
+      if (out.length >= dominantSlots) break;
     }
+
+    if (out.length < count) {
+      const remaining = clusters.filter((c) => !picked.includes(c));
+      // Require a minimum vividness so we don't pick a near-neutral as "accent".
+      const accent = remaining
+        .filter((c) => c.sat > 0.25)
+        .sort((a, b) => b.sat - a.sat)
+        .find((c) => !picked.some((p) => tooClose(p, c)));
+      if (accent) {
+        picked.push(accent);
+        out.push(toHex(accent.r, accent.g, accent.b));
+      } else {
+        // Fall back to next most frequent if no vivid accent exists.
+        for (const c of byFrequency) {
+          if (picked.some((p) => tooClose(p, c))) continue;
+          picked.push(c);
+          out.push(toHex(c.r, c.g, c.b));
+          if (out.length >= count) break;
+        }
+      }
+    }
+
     return out;
   } finally {
     URL.revokeObjectURL(url);
