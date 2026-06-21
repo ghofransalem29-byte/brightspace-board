@@ -11,12 +11,45 @@ import {
 } from "@/lib/feedback";
 
 export const Route = createFileRoute("/share/$token")({
-  head: () => ({
-    meta: [
-      { title: "Shared board — Atelier" },
-      { name: "description", content: "A shared visual mood board." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const { data: p } = await supabase
+      .from("projects")
+      .select("id,title,description,cover,palette,created_at,share_token")
+      .eq("share_token", params.token)
+      .maybeSingle();
+    if (!p) return { project: null, firstImage: null as string | null };
+    const { data: first } = await supabase
+      .from("moodboard_items")
+      .select("src")
+      .eq("project_id", p.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return { project: p, firstImage: first?.src ?? p.cover ?? null };
+  },
+  head: ({ loaderData }) => {
+    const title = loaderData?.project?.title
+      ? `${loaderData.project.title} — Atelier`
+      : "Shared board — Atelier";
+    const description =
+      loaderData?.project?.description ?? "An aesthetic concept board";
+    const image = loaderData?.firstImage ?? undefined;
+    const meta = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "article" },
+      { name: "twitter:card", content: image ? "summary_large_image" : "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ];
+    if (image) {
+      meta.push({ property: "og:image", content: image });
+      meta.push({ name: "twitter:image", content: image });
+    }
+    return { meta };
+  },
   component: SharedBoard,
   errorComponent: () => (
     <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
@@ -35,6 +68,7 @@ function SharedBoard() {
   const [project, setProject] = useState<Project | null>(null);
   const [images, setImages] = useState<BoardImage[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [activeTag, setActiveTag] = useState<string>("__all");
   const [activeImage, setActiveImage] = useState<BoardImage | null>(null);
   const [nameOpen, setNameOpen] = useState(false);
   const [nameEditOpen, setNameEditOpen] = useState(false);
@@ -106,6 +140,20 @@ function SharedBoard() {
 
   const boardDecision = useMemo(() => feedback.find((f) => f.decision && !f.itemId) ?? null, [feedback]);
 
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    images.forEach((i) => (i.tags ?? []).forEach((t) => s.add(t)));
+    return Array.from(s).sort();
+  }, [images]);
+
+  const visibleImages = useMemo(
+    () =>
+      activeTag === "__all"
+        ? images
+        : images.filter((i) => (i.tags ?? []).includes(activeTag)),
+    [images, activeTag],
+  );
+
   const handleReact = (img: BoardImage, kind: "love" | "pass") => {
     if (!identity.name) {
       setNameOpen(true);
@@ -129,21 +177,24 @@ function SharedBoard() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-4 sm:px-8">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-8">
           <div className="min-w-0">
             <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
               Client review · Shared board
             </p>
-            <h1 className="truncate font-display text-xl leading-none sm:text-2xl">{project.title}</h1>
+            <h1 className="truncate font-display text-xl leading-tight sm:text-2xl">{project.title}</h1>
+            <p className="mt-1 truncate font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Shared by the designer
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <button
               onClick={() => setNameEditOpen(true)}
               className="font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
               title="Change your name"
             >
               <Pencil className="h-3 w-3" />
-              <span className="hidden sm:inline">{identity.name ?? "Set name"}</span>
+              <span className="hidden max-w-[140px] truncate sm:inline">{identity.name ?? "Set name"}</span>
             </button>
             <Link
               to="/"
@@ -155,16 +206,28 @@ function SharedBoard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1400px] px-6 py-12 sm:px-8">
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8 sm:py-12">
         {project.palette.length > 0 && (
-          <section className="mb-12">
+          <section className="mb-10 sm:mb-12">
             <p className="mb-3 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Palette</p>
             <div className="flex flex-wrap gap-2">
               {project.palette.map((c, i) => (
-                <div key={i} className="flex items-center gap-2 border border-border px-2 py-1.5">
-                  <span className="h-5 w-5 rounded-sm border border-border" style={{ background: c }} />
-                  <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em]">{c}</span>
+                <div key={i} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+                  <span className="h-5 w-5 rounded-sm border border-border shadow-sm" style={{ background: c }} />
+                  <span className="font-mono-ui hidden text-[10px] uppercase tracking-[0.2em] sm:inline">{c}</span>
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {allTags.length > 0 && (
+          <section className="mb-6">
+            <p className="mb-3 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Filter</p>
+            <div className="flex flex-wrap gap-2">
+              <TagPill label="All" active={activeTag === "__all"} onClick={() => setActiveTag("__all")} />
+              {allTags.map((t) => (
+                <TagPill key={t} label={t} active={activeTag === t} onClick={() => setActiveTag(t)} />
               ))}
             </div>
           </section>
@@ -174,22 +237,20 @@ function SharedBoard() {
           Tap a heart to love · Click an image to comment
         </p>
 
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
-          {images.map((img) => {
+        <div
+          key={activeTag}
+          className="grid animate-fade-in grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 md:grid-cols-3 lg:grid-cols-4"
+        >
+          {visibleImages.map((img) => {
             const t = tallies.get(img.id) ?? { love: 0, pass: 0, mine: null };
             const commentCount = feedback.filter((f) => f.itemId === img.id).length;
             return (
               <figure key={img.id} className="group flex flex-col gap-2">
                 <button
                   onClick={() => setActiveImage(img)}
-                  className="relative overflow-hidden border border-border bg-muted/20 text-left"
+                  className="relative overflow-hidden rounded-lg border border-border bg-muted/30 text-left shadow-sm transition-shadow hover:shadow-lg"
                 >
-                  <img
-                    src={img.src}
-                    alt={img.caption ?? ""}
-                    className="aspect-[4/5] w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
-                  />
+                  <LazyImage src={img.src} alt={img.caption ?? ""} />
                   {commentCount > 0 && (
                     <span className="absolute right-2 top-2 inline-flex items-center gap-1 border border-foreground bg-background/95 px-2 py-1 font-mono-ui text-[9px] uppercase tracking-[0.18em] text-foreground backdrop-blur">
                       <MessageSquare className="h-3 w-3" /> {commentCount}
@@ -223,9 +284,9 @@ function SharedBoard() {
           })}
         </div>
 
-        {images.length === 0 && (
+        {visibleImages.length === 0 && (
           <p className="py-20 text-center font-mono-ui text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            No images on this board yet.
+            {images.length === 0 ? "No images on this board yet." : "No images match this tag."}
           </p>
         )}
 
@@ -294,6 +355,42 @@ function SharedBoard() {
 }
 
 /* ----------------------------- Reaction button --------------------------- */
+
+function TagPill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`font-mono-ui rounded-full border px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] transition-colors ${
+        active
+          ? "border-foreground bg-foreground text-background"
+          : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function LazyImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative aspect-[4/5] w-full overflow-hidden">
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-muted/40 to-muted/10" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        className={`h-full w-full object-cover transition-all duration-700 group-hover:scale-105 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </div>
+  );
+}
 
 function ReactionButton({
   kind,
