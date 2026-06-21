@@ -137,10 +137,10 @@ export function useProject(id: string) {
   const [saving, setSaving] = useState(false);
   const inflight = useRef(0);
 
-  const track = useCallback(<T,>(p: Promise<T>): Promise<T> => {
+  const track = useCallback(<T,>(p: PromiseLike<T>): Promise<T> => {
     inflight.current += 1;
     setSaving(true);
-    return p.finally(() => {
+    return Promise.resolve(p).finally(() => {
       inflight.current = Math.max(0, inflight.current - 1);
       if (inflight.current === 0) setSaving(false);
     });
