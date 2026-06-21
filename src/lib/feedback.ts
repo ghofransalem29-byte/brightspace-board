@@ -141,11 +141,10 @@ export function useBoardFeedback(projectId: string | null | undefined) {
       if (existing && existing.kind === kind) {
         // remove
         setReactions((cur) => cur.filter((r) => r.id !== existing.id));
-        const { error } = await supabase
-          .from("board_reactions")
-          .delete()
-          .eq("id", existing.id)
-          .eq("client_id", identity.id);
+        const { error } = await supabase.rpc("delete_my_reaction", {
+          _id: existing.id,
+          _client_id: identity.id,
+        });
         if (error) {
           console.error(error);
           toast.error("Couldn't remove your reaction. Please try again.");
@@ -158,11 +157,12 @@ export function useBoardFeedback(projectId: string | null | undefined) {
         setReactions((cur) =>
           cur.map((r) => (r.id === existing.id ? { ...r, kind, clientName } : r)),
         );
-        const { error } = await supabase
-          .from("board_reactions")
-          .update({ kind, client_name: clientName })
-          .eq("id", existing.id)
-          .eq("client_id", identity.id);
+        const { error } = await supabase.rpc("update_my_reaction", {
+          _id: existing.id,
+          _client_id: identity.id,
+          _kind: kind,
+          _client_name: clientName,
+        });
         if (error) {
           console.error(error);
           toast.error("Couldn't save your reaction. Please try again.");
