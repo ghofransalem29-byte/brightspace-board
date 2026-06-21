@@ -20,7 +20,7 @@ export function UpgradeModal({ open, onClose, title, message }: UpgradeModalProp
     const result = await createCheckoutSession({
       data: {
         priceId: "pro_monthly",
-        returnUrl: `${window.location.origin}/billing?checkout=success`,
+        returnUrl: `${window.location.origin}/?checkout=success`,
         environment: getStripeEnvironment(),
       },
     });
