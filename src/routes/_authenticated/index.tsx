@@ -163,9 +163,10 @@ function Dashboard() {
             </span>
             <Link
               to="/billing"
-              className="font-mono-ui inline-flex items-center gap-1.5 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
+              aria-label={isPro ? "Pro plan — manage billing" : "Billing"}
+              className="font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
             >
-              {isPro ? <><Sparkles className="h-3 w-3" /> Pro</> : <>Billing</>}
+              {isPro ? <ProBadge /> : <>Billing</>}
             </Link>
             <ThemeToggle />
             <button
@@ -187,11 +188,9 @@ function Dashboard() {
                 — Index / Boards
               </p>
               <h1 className="font-display text-[clamp(3rem,8vw,6.5rem)] leading-[0.95]">
-                A quiet place
+                A quiet place to <em className="italic">collect</em>
                 <br />
-                to <em className="italic">collect</em> what
-                <br />
-                catches the eye.
+                what catches the eye.
               </h1>
             </div>
             <div className="col-span-12 flex flex-col justify-end lg:col-span-4">
