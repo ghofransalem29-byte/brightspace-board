@@ -215,7 +215,7 @@ function Dashboard() {
             <Link
               to="/billing"
               aria-label={isPro ? "Pro plan — manage billing" : "Billing"}
-              className="font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
+              className="group/pro font-mono-ui inline-flex items-center gap-2 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
             >
               {isPro ? <ProBadge /> : <>Billing</>}
             </Link>
