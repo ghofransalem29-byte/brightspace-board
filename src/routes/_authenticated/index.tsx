@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X, Sparkles } from "lucide-react";
+import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -36,9 +36,9 @@ function ProBadge() {
       <svg viewBox="0 0 44 18" width="40" height="16" role="img" aria-label="Pro" className="block">
         <defs>
           <linearGradient id="pro-badge-fill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="oklch(0.32 0.02 270)" />
-            <stop offset="55%" stopColor="oklch(0.14 0.006 270)" />
-            <stop offset="100%" stopColor="oklch(0.42 0.03 270)" />
+            <stop offset="0%" stopColor="oklch(0.62 0.18 255)" />
+            <stop offset="55%" stopColor="oklch(0.42 0.20 260)" />
+            <stop offset="100%" stopColor="oklch(0.70 0.16 240)" />
           </linearGradient>
           <linearGradient id="pro-badge-text" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="oklch(0.99 0.004 85)" />
@@ -52,7 +52,7 @@ function ProBadge() {
           height="17"
           rx="8.5"
           fill="url(#pro-badge-fill)"
-          stroke="oklch(0.18 0.008 270)"
+          stroke="oklch(0.34 0.18 260)"
           strokeWidth="1"
         />
         <text
@@ -495,7 +495,6 @@ function ProjectCard({
           <BoardPreview thumbs={thumbs} palette={palette} title={project.title} />
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/85 backdrop-blur-sm">
-          <Sparkles className="h-5 w-5" strokeWidth={1.5} />
           <p className="font-display text-2xl">Locked</p>
           <p className="font-mono-ui text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Upgrade to Pro to unlock

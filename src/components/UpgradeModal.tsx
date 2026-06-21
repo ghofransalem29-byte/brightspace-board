@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
-import { X, Sparkles } from "lucide-react";
+import { X } from "lucide-react";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createCheckoutSession } from "@/lib/payments.functions";
 
@@ -48,7 +48,7 @@ export function UpgradeModal({ open, onClose, title, message }: UpgradeModalProp
         {!checkoutOpen ? (
           <div className="p-10">
             <p className="font-mono-ui mb-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              <Sparkles className="mr-1 inline h-3 w-3" /> Atelier Pro
+              Atelier Pro
             </p>
             <h2 className="font-display text-4xl leading-tight">
               {title ?? "Unlock the studio."}
