@@ -10,6 +10,7 @@ export interface Project {
   createdAt: number;
   imageCount?: number;
   shareToken?: string | null;
+  thumbs?: string[];
 }
 
 export interface BoardImage {
@@ -53,6 +54,7 @@ function rowToProject(r: ProjectRow): Project {
     createdAt: new Date(r.created_at).getTime(),
     imageCount: counts[0]?.count ?? 0,
     shareToken: r.share_token ?? null,
+    thumbs: [],
   };
 }
 
@@ -89,7 +91,26 @@ export function useProjects() {
       console.error(error);
       setProjects([]);
     } else {
-      setProjects((data ?? []).map((r) => rowToProject(r as ProjectRow)));
+      const list = (data ?? []).map((r) => rowToProject(r as ProjectRow));
+      // Fetch up to 4 thumbnails per project for the dashboard collage.
+      const ids = list.map((p) => p.id);
+      if (ids.length > 0) {
+        const { data: items } = await supabase
+          .from("moodboard_items")
+          .select("project_id, src, created_at")
+          .in("project_id", ids)
+          .order("created_at", { ascending: false });
+        const byProject = new Map<string, string[]>();
+        for (const it of items ?? []) {
+          const arr = byProject.get(it.project_id) ?? [];
+          if (arr.length < 4) {
+            arr.push(it.src);
+            byProject.set(it.project_id, arr);
+          }
+        }
+        for (const p of list) p.thumbs = byProject.get(p.id) ?? [];
+      }
+      setProjects(list);
     }
     setLoaded(true);
   }, []);
