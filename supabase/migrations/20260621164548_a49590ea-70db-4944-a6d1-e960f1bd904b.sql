@@ -1,0 +1,10 @@
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.board_reactions TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.board_feedback TO anon, authenticated;
+GRANT ALL ON public.board_reactions TO service_role;
+GRANT ALL ON public.board_feedback TO service_role;
+GRANT SELECT ON public.projects TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.projects TO authenticated;
+GRANT ALL ON public.projects TO service_role;
+GRANT SELECT ON public.moodboard_items TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.moodboard_items TO authenticated;
+GRANT ALL ON public.moodboard_items TO service_role;
