@@ -416,6 +416,16 @@ function PaletteBuilder({ palette, onChange }: { palette: string[]; onChange: (p
           error={error}
         />
       </div>
+      {palette.length === 0 && (
+        <div className="mt-4 flex items-center gap-3 border-l-2 border-border pl-4">
+          <span className="font-mono-ui text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Empty palette
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Colors auto-extract from uploaded images, or add hex codes manually on the right.
+          </span>
+        </div>
+      )}
     </section>
   );
 }
@@ -656,18 +666,33 @@ function ImageBoard({
         {images.length === 0 ? (
           <button
             onClick={() => fileInput.current?.click()}
-            className="flex aspect-[16/7] w-full flex-col items-center justify-center gap-3 border border-dashed border-border bg-secondary/40 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+            className="group flex aspect-[16/7] w-full flex-col items-center justify-center gap-4 border border-dashed border-border bg-secondary/30 text-muted-foreground transition-colors hover:border-foreground hover:bg-secondary/60 hover:text-foreground"
           >
-            <ImagePlus className="h-8 w-8" strokeWidth={1.25} />
-            <p className="font-display text-2xl">Drop images, or click to upload.</p>
-            <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em]">JPG · PNG · WEBP · GIF</p>
+            <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em]">
+              — A blank canvas
+            </span>
+            <ImagePlus className="h-9 w-9 transition-transform duration-300 group-hover:-translate-y-0.5" strokeWidth={1.25} />
+            <p className="font-display text-3xl leading-tight">
+              Drop images, or <em className="italic">click to upload.</em>
+            </p>
+            <p className="font-mono-ui text-[10px] uppercase tracking-[0.22em]">
+              JPG · PNG · WEBP · GIF · or paste a URL
+            </p>
           </button>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-secondary/40 py-24 text-center">
-            <p className="font-display text-3xl">No images tagged “{activeTag}”.</p>
+          <div className="flex flex-col items-center justify-center gap-4 border border-dashed border-border bg-secondary/30 py-20 text-center">
+            <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              — Filtered view
+            </span>
+            <p className="font-display text-3xl leading-tight">
+              Nothing tagged <em className="italic">"{activeTag}"</em> yet.
+            </p>
+            <p className="max-w-sm text-xs text-muted-foreground">
+              Add this tag to images from their card, or clear the filter to see everything.
+            </p>
             <button
               onClick={() => setActiveTag(null)}
-              className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground underline hover:text-foreground"
+              className="font-mono-ui mt-1 inline-flex items-center gap-2 border border-border px-4 py-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
             >
               Clear filter
             </button>
@@ -999,7 +1024,17 @@ function FeedbackPanel({
           <section>
             <p className="font-mono-ui mb-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Per image</p>
             {active.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No reactions or comments yet.</p>
+              <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-secondary/30 px-6 py-12 text-center">
+                <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  — Quiet so far
+                </span>
+                <p className="font-display text-xl leading-snug">
+                  No reactions or comments yet.
+                </p>
+                <p className="max-w-xs text-xs text-muted-foreground">
+                  Share the board link with a client — loves, passes, and notes will gather here.
+                </p>
+              </div>
             ) : (
               <div className="space-y-5">
                 {active.map(({ image, love, pass, comments }) => {
