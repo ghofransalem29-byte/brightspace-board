@@ -251,6 +251,32 @@ function Dashboard() {
             </div>
           </div>
 
+          {loaded && projects.length === 0 && !selectMode ? (
+            <div className="border border-border">
+              <div className="mx-auto flex max-w-xl flex-col items-center gap-6 px-8 py-24 text-center">
+                <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  — A clean slate
+                </span>
+                <h3 className="font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.02]">
+                  Your first board
+                  <br />
+                  <em className="italic">begins here.</em>
+                </h3>
+                <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+                  Boards hold images, palettes, and the references you'll come back to. Start one and let the collection grow.
+                </p>
+                <button
+                  onClick={tryCreate}
+                  className="font-mono-ui mt-2 inline-flex items-center gap-2 border border-foreground bg-foreground px-5 py-3 text-[11px] uppercase tracking-[0.22em] text-background transition-colors hover:bg-background hover:text-foreground"
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={1.5} /> Create board
+                </button>
+                <p className="font-mono-ui text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Free tier · up to 3 boards
+                </p>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-3 border border-border">
             {!selectMode && (
             <button
@@ -282,6 +308,7 @@ function Dashboard() {
               />
             ))}
           </div>
+          )}
         </div>
       </section>
 
