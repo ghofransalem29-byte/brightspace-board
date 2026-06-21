@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /* ------------------------- Client identity (anon) ------------------------- */
 
@@ -147,6 +148,7 @@ export function useBoardFeedback(projectId: string | null | undefined) {
           .eq("client_id", identity.id);
         if (error) {
           console.error(error);
+          toast.error("Couldn't remove your reaction. Please try again.");
           refresh();
         }
         return;
@@ -163,6 +165,7 @@ export function useBoardFeedback(projectId: string | null | undefined) {
           .eq("client_id", identity.id);
         if (error) {
           console.error(error);
+          toast.error("Couldn't save your reaction. Please try again.");
           refresh();
         }
         return;
@@ -181,6 +184,7 @@ export function useBoardFeedback(projectId: string | null | undefined) {
         .single();
       if (error || !data) {
         console.error(error);
+        toast.error(error?.message ?? "Couldn't save your reaction. Please try again.");
         return;
       }
       setReactions((cur) => [...cur, rxFrom(data as RxRow)]);
@@ -206,6 +210,7 @@ export function useBoardFeedback(projectId: string | null | undefined) {
         .single();
       if (error || !data) {
         console.error(error);
+        toast.error(error?.message ?? "Couldn't post your comment. Please try again.");
         return null;
       }
       const entry = fbFrom(data as FbRow);
