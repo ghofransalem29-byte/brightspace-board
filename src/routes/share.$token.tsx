@@ -377,6 +377,17 @@ function SharedBoard() {
           onClose={() => setNameEditOpen(false)}
         />
       )}
+
+      {!ownerIsPro && (
+        <a
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-1.5 border border-border bg-background/95 px-3 py-1.5 font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground shadow-md backdrop-blur transition-colors hover:border-foreground hover:text-foreground"
+        >
+          Made with <span className="font-display text-sm normal-case tracking-normal text-foreground">Atelier</span>
+        </a>
+      )}
     </div>
   );
 }
