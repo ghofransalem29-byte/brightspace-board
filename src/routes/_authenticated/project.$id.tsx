@@ -28,6 +28,58 @@ function normalizeHex(input: string): string | null {
   return `#${v.toLowerCase()}`;
 }
 
+function ProjectCanvasSkeleton() {
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-6 py-4 sm:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
+            <div className="h-3 w-16 animate-pulse bg-muted/60" />
+            <div className="h-7 w-64 animate-pulse bg-muted/50" />
+          </div>
+          <div className="hidden gap-2 sm:flex">
+            <div className="h-9 w-24 animate-pulse bg-muted/40" />
+            <div className="h-9 w-24 animate-pulse bg-muted/40" />
+            <div className="h-9 w-9 animate-pulse bg-muted/40" />
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto max-w-[1400px] px-6 py-12 sm:px-8">
+        {/* Palette skeleton */}
+        <section className="border-b border-border pb-16">
+          <div className="mb-8 space-y-3">
+            <div className="h-3 w-24 animate-pulse bg-muted/60" />
+            <div className="h-10 w-72 animate-pulse bg-muted/50" />
+          </div>
+          <div className="grid grid-cols-2 gap-px overflow-hidden border border-border bg-border sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SwatchSkeleton key={i} />
+            ))}
+          </div>
+        </section>
+        {/* Inspiration grid skeleton */}
+        <section className="pt-16">
+          <div className="mb-8 flex items-end justify-between">
+            <div className="space-y-3">
+              <div className="h-3 w-24 animate-pulse bg-muted/60" />
+              <div className="h-10 w-80 animate-pulse bg-muted/50" />
+            </div>
+            <div className="hidden gap-2 sm:flex">
+              <div className="h-9 w-24 animate-pulse bg-muted/40" />
+              <div className="h-9 w-28 animate-pulse bg-muted/40" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ImageCardSkeleton key={i} />
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
 function ProjectCanvas() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
