@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Project {
@@ -134,6 +134,17 @@ export function useProject(id: string) {
   const [project, setProject] = useState<Project | undefined>(undefined);
   const [images, setImages] = useState<BoardImage[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const inflight = useRef(0);
+
+  const track = useCallback(<T,>(p: Promise<T>): Promise<T> => {
+    inflight.current += 1;
+    setSaving(true);
+    return p.finally(() => {
+      inflight.current = Math.max(0, inflight.current - 1);
+      if (inflight.current === 0) setSaving(false);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,10 +178,10 @@ export function useProject(id: string) {
       if (changes.description !== undefined) dbPatch.description = changes.description;
       if (changes.cover !== undefined) dbPatch.cover = changes.cover;
       if (changes.palette !== undefined) dbPatch.palette = changes.palette;
-      const { error } = await supabase.from("projects").update(dbPatch).eq("id", id);
+      const { error } = await track(supabase.from("projects").update(dbPatch).eq("id", id));
       if (error) console.error(error);
     },
-    [id],
+    [id, track],
   );
 
   const remove = useCallback(async () => {
@@ -181,21 +192,21 @@ export function useProject(id: string) {
   const enableShare = useCallback(async (): Promise<string | null> => {
     if (project?.shareToken) return project.shareToken;
     const token = crypto.randomUUID();
-    const { error } = await supabase.from("projects").update({ share_token: token }).eq("id", id);
+    const { error } = await track(supabase.from("projects").update({ share_token: token }).eq("id", id));
     if (error) {
       console.error(error);
       return null;
     }
     setProject((cur) => (cur ? { ...cur, shareToken: token } : cur));
     return token;
-  }, [id, project?.shareToken]);
+  }, [id, project?.shareToken, track]);
 
   const insertItem = useCallback(
     async (row: { src: string; storage_path?: string | null; caption?: string | null }) => {
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (!uid) return null;
-      const { data, error } = await supabase
+      const { data, error } = await track(supabase
         .from("moodboard_items")
         .insert({
           project_id: id,
@@ -206,7 +217,7 @@ export function useProject(id: string) {
           tags: [],
         })
         .select("*")
-        .single();
+        .single());
       if (error || !data) {
         console.error(error);
         return null;
@@ -215,7 +226,7 @@ export function useProject(id: string) {
       setImages((cur) => [img, ...cur]);
       return img;
     },
-    [id],
+    [id, track],
   );
 
   const uploadFile = useCallback(
@@ -225,10 +236,10 @@ export function useProject(id: string) {
       if (!uid) return null;
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${uid}/${id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file, {
+      const { error: upErr } = await track(supabase.storage.from(BUCKET).upload(path, file, {
         contentType: file.type,
         upsert: false,
-      });
+      }));
       if (upErr) {
         console.error(upErr);
         return null;
@@ -242,7 +253,7 @@ export function useProject(id: string) {
       }
       return insertItem({ src: signed.signedUrl, storage_path: path });
     },
-    [id, insertItem],
+    [id, insertItem, track],
   );
 
   const addByUrl = useCallback(
@@ -254,22 +265,23 @@ export function useProject(id: string) {
     const target = images.find((i) => i.id === imageId);
     setImages((cur) => cur.filter((i) => i.id !== imageId));
     if (target?.storagePath) {
-      await supabase.storage.from(BUCKET).remove([target.storagePath]);
+      await track(supabase.storage.from(BUCKET).remove([target.storagePath]));
     }
-    const { error } = await supabase.from("moodboard_items").delete().eq("id", imageId);
+    const { error } = await track(supabase.from("moodboard_items").delete().eq("id", imageId));
     if (error) console.error(error);
-  }, [images]);
+  }, [images, track]);
 
   const updateImageTags = useCallback(async (imageId: string, tags: string[]) => {
     setImages((cur) => cur.map((i) => (i.id === imageId ? { ...i, tags } : i)));
-    const { error } = await supabase.from("moodboard_items").update({ tags }).eq("id", imageId);
+    const { error } = await track(supabase.from("moodboard_items").update({ tags }).eq("id", imageId));
     if (error) console.error(error);
-  }, []);
+  }, [track]);
 
   return {
     project,
     images,
     loaded,
+    saving,
     patch,
     remove,
     uploadFile,
