@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/billing")({
 });
 
 function BillingPage() {
-  const { isPro, loaded } = useIsPro();
+  const { isPro, loaded, subscription } = useIsPro();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [opening, setOpening] = useState(false);
 
@@ -49,6 +49,15 @@ function BillingPage() {
       </header>
 
       <main className="mx-auto max-w-[1100px] px-8 py-16">
+        {subscription?.cancel_at_period_end && subscription.current_period_end && (
+          <div className="mb-8 border border-amber-500/40 bg-amber-500/10 p-4 font-mono-ui text-[11px] uppercase tracking-[0.2em] text-amber-900 dark:text-amber-200">
+            Pro ends on{" "}
+            {new Date(subscription.current_period_end).toLocaleDateString("en-US", {
+              month: "long", day: "numeric", year: "numeric",
+            })}
+            . You'll keep access until then.
+          </div>
+        )}
         <p className="font-mono-ui mb-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">— Account</p>
         <h1 className="font-display text-5xl leading-[0.95]">Your plan.</h1>
 
