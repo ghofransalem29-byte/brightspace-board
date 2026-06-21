@@ -1024,7 +1024,17 @@ function FeedbackPanel({
           <section>
             <p className="font-mono-ui mb-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">Per image</p>
             {active.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No reactions or comments yet.</p>
+              <div className="flex flex-col items-center justify-center gap-3 border border-dashed border-border bg-secondary/30 px-6 py-12 text-center">
+                <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  — Quiet so far
+                </span>
+                <p className="font-display text-xl leading-snug">
+                  No reactions or comments yet.
+                </p>
+                <p className="max-w-xs text-xs text-muted-foreground">
+                  Share the board link with a client — loves, passes, and notes will gather here.
+                </p>
+              </div>
             ) : (
               <div className="space-y-5">
                 {active.map(({ image, love, pass, comments }) => {
