@@ -599,6 +599,7 @@ function ImageBoard({
   const [caption, setCaption] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
   const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
@@ -619,11 +620,14 @@ function ImageBoard({
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) return;
     setUploading(true);
+    setPendingUploads((c) => c + imageFiles.length);
     let lastId: string | null = null;
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
+    for (const file of imageFiles) {
       const img = await onUploadFile(file);
+      setPendingUploads((c) => Math.max(0, c - 1));
       if (img) lastId = img.id;
     }
     setUploading(false);
