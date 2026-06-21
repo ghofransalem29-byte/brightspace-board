@@ -10,6 +10,7 @@ import {
   relativeTime,
   type ClientIdentity,
 } from "@/lib/feedback";
+import { ShareImageSkeleton } from "@/components/Skeletons";
 
 export const Route = createFileRoute("/share/$token")({
   loader: async ({ params }) => {
@@ -189,7 +190,37 @@ function SharedBoard() {
     toggleReaction(img.id, kind, identity);
   };
 
-  if (!loaded) return <div className="min-h-screen bg-background" />;
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
+          <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-4 sm:px-8">
+            <div className="min-w-0 space-y-2">
+              <div className="h-2.5 w-40 animate-pulse bg-muted/60" />
+              <div className="h-7 w-64 animate-pulse bg-muted/50" />
+              <div className="h-2.5 w-32 animate-pulse bg-muted/40" />
+            </div>
+            <div className="hidden gap-2 sm:flex">
+              <div className="h-9 w-32 animate-pulse bg-muted/40" />
+              <div className="h-9 w-20 animate-pulse bg-muted/40" />
+            </div>
+          </div>
+        </header>
+        <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8 sm:py-12">
+          <div className="mb-10 flex flex-wrap gap-2 sm:mb-12">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-9 w-24 animate-pulse rounded-md border border-border bg-muted/30" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ShareImageSkeleton key={i} />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
   if (!project) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
