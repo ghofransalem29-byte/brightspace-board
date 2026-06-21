@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X } from "lucide-react";
+import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsPro } from "@/hooks/useSubscription";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -22,11 +24,23 @@ function formatDate(ts: number) {
 function Dashboard() {
   const { projects, loaded, create, remove } = useProjects();
   const navigate = useNavigate();
+  const { isPro } = useIsPro();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const atBoardLimit = !isPro && projects.length >= 3;
+
+  const tryCreate = () => {
+    if (atBoardLimit) {
+      setUpgradeOpen(true);
+      return;
+    }
+    setCreating(true);
+  };
 
   const toggleSelected = (id: string) => {
     setSelected((cur) => {
@@ -84,6 +98,12 @@ function Dashboard() {
             <span className="hidden font-mono-ui text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:inline">
               {projects.length.toString().padStart(2, "0")} Boards
             </span>
+            <Link
+              to="/billing"
+              className="font-mono-ui inline-flex items-center gap-1.5 border border-border px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:border-foreground hover:text-foreground"
+            >
+              {isPro ? <><Sparkles className="h-3 w-3" /> Pro</> : <>Billing</>}
+            </Link>
             <ThemeToggle />
             <button
               onClick={signOut}
@@ -172,7 +192,7 @@ function Dashboard() {
           <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-3 border border-border">
             {!selectMode && (
             <button
-              onClick={() => setCreating(true)}
+              onClick={tryCreate}
               className="group relative flex aspect-[4/5] flex-col justify-between bg-background p-6 text-left transition-colors hover:bg-foreground hover:text-background"
             >
               <div className="flex items-start justify-between">
@@ -181,7 +201,7 @@ function Dashboard() {
               </div>
               <div>
                 <p className="font-display text-3xl leading-tight">Begin a new board.</p>
-                <p className="mt-2 text-xs opacity-70">Start with a blank canvas.</p>
+                <p className="mt-2 text-xs opacity-70">{atBoardLimit ? "Free tier limit reached — upgrade for unlimited boards." : "Start with a blank canvas."}</p>
               </div>
             </button>
             )}
@@ -243,6 +263,12 @@ function Dashboard() {
           </form>
         </div>
       )}
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        title="Room for more boards."
+        message="The free tier includes up to 3 boards. Upgrade to Atelier Pro for unlimited boards and share links."
+      />
     </div>
   );
 }
