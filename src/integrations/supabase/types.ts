@@ -246,6 +246,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_my_reaction: {
+        Args: { _client_id: string; _id: string }
+        Returns: boolean
+      }
       is_project_owner: { Args: { _project_id: string }; Returns: boolean }
       is_project_owner_pro: {
         Args: { _env: string; _project_id: string }
@@ -254,6 +258,15 @@ export type Database = {
       is_project_shared: { Args: { _project_id: string }; Returns: boolean }
       is_user_pro: {
         Args: { _env: string; _user_id: string }
+        Returns: boolean
+      }
+      update_my_reaction: {
+        Args: {
+          _client_id: string
+          _client_name: string
+          _id: string
+          _kind: string
+        }
         Returns: boolean
       }
     }
