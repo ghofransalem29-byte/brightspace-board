@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useIsPro } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
+import { ImageCardSkeleton, SwatchSkeleton } from "@/components/Skeletons";
 
 export const Route = createFileRoute("/_authenticated/project/$id")({
   head: ({ params }) => ({
@@ -65,7 +66,7 @@ function ProjectCanvas() {
     if (feedbackOpen) markAllSeen();
   }, [feedbackOpen, markAllSeen]);
 
-  if (!loaded) return <div className="min-h-screen bg-background" />;
+  if (!loaded) return <ProjectCanvasSkeleton />;
   if (!project) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
