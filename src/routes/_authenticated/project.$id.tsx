@@ -416,6 +416,16 @@ function PaletteBuilder({ palette, onChange }: { palette: string[]; onChange: (p
           error={error}
         />
       </div>
+      {palette.length === 0 && (
+        <div className="mt-4 flex items-center gap-3 border-l-2 border-border pl-4">
+          <span className="font-mono-ui text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            Empty palette
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Colors auto-extract from uploaded images, or add hex codes manually on the right.
+          </span>
+        </div>
+      )}
     </section>
   );
 }
