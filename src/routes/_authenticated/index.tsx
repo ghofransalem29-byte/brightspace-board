@@ -32,48 +32,48 @@ function formatDate(ts: number) {
  */
 function ProBadge() {
   return (
-    <svg
-      viewBox="0 0 44 18"
-      width="40"
-      height="16"
-      role="img"
-      aria-label="Pro"
-      className="shrink-0"
-    >
-      <defs>
-        <linearGradient id="pro-badge-fill" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="oklch(0.32 0.02 270)" />
-          <stop offset="55%" stopColor="oklch(0.14 0.006 270)" />
-          <stop offset="100%" stopColor="oklch(0.42 0.03 270)" />
-        </linearGradient>
-        <linearGradient id="pro-badge-text" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="oklch(0.99 0.004 85)" />
-          <stop offset="100%" stopColor="oklch(0.82 0.02 85)" />
-        </linearGradient>
-      </defs>
-      <rect
-        x="0.5"
-        y="0.5"
-        width="43"
-        height="17"
-        rx="8.5"
-        fill="url(#pro-badge-fill)"
-        stroke="oklch(0.18 0.008 270)"
-        strokeWidth="1"
+    <span className="relative inline-flex h-[16px] w-[40px] shrink-0 overflow-hidden rounded-full transition-transform duration-300 ease-out group-hover/pro:-translate-y-px">
+      <svg viewBox="0 0 44 18" width="40" height="16" role="img" aria-label="Pro" className="block">
+        <defs>
+          <linearGradient id="pro-badge-fill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="oklch(0.32 0.02 270)" />
+            <stop offset="55%" stopColor="oklch(0.14 0.006 270)" />
+            <stop offset="100%" stopColor="oklch(0.42 0.03 270)" />
+          </linearGradient>
+          <linearGradient id="pro-badge-text" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="oklch(0.99 0.004 85)" />
+            <stop offset="100%" stopColor="oklch(0.82 0.02 85)" />
+          </linearGradient>
+        </defs>
+        <rect
+          x="0.5"
+          y="0.5"
+          width="43"
+          height="17"
+          rx="8.5"
+          fill="url(#pro-badge-fill)"
+          stroke="oklch(0.18 0.008 270)"
+          strokeWidth="1"
+        />
+        <text
+          x="22"
+          y="13"
+          textAnchor="middle"
+          fontFamily="'JetBrains Mono', ui-monospace, monospace"
+          fontWeight="700"
+          fontSize="9"
+          letterSpacing="1.6"
+          fill="url(#pro-badge-text)"
+        >
+          PRO
+        </text>
+      </svg>
+      {/* Shimmer sweep: glides diagonally across the badge on hover. */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -translate-x-full -skew-x-12 bg-gradient-to-r from-transparent via-white/55 to-transparent transition-transform duration-[900ms] ease-out group-hover/pro:translate-x-[260%]"
       />
-      <text
-        x="22"
-        y="13"
-        textAnchor="middle"
-        fontFamily="'JetBrains Mono', ui-monospace, monospace"
-        fontWeight="700"
-        fontSize="9"
-        letterSpacing="1.6"
-        fill="url(#pro-badge-text)"
-      >
-        PRO
-      </text>
-    </svg>
+    </span>
   );
 }
 
