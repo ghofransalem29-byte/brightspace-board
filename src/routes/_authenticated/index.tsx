@@ -37,6 +37,21 @@ function Dashboard() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [cancelBannerDismissed, setCancelBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    if (subscription?.current_period_end && subscription.cancel_at_period_end) {
+      const key = `cancel-banner-dismissed:${subscription.current_period_end}`;
+      setCancelBannerDismissed(sessionStorage.getItem(key) === "1");
+    }
+  }, [subscription?.cancel_at_period_end, subscription?.current_period_end]);
+
+  const dismissCancelBanner = () => {
+    if (subscription?.current_period_end) {
+      sessionStorage.setItem(`cancel-banner-dismissed:${subscription.current_period_end}`, "1");
+    }
+    setCancelBannerDismissed(true);
+  };
 
   // Show celebratory modal on return from successful checkout, refresh status.
   useEffect(() => {
@@ -119,10 +134,18 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {cancelEndDate && (
-        <div className="border-b border-amber-500/40 bg-amber-500/10 px-8 py-3 text-center font-mono-ui text-[11px] uppercase tracking-[0.2em] text-amber-900 dark:text-amber-200">
+      {cancelEndDate && !cancelBannerDismissed && (
+        <div className="relative border-b border-amber-500/40 bg-amber-500/10 px-8 py-3 text-center font-mono-ui text-[11px] uppercase tracking-[0.2em] text-amber-900 dark:text-amber-200">
           Pro ends on {cancelEndDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.{" "}
           <Link to="/billing" className="underline hover:no-underline">Resubscribe</Link>
+          <button
+            type="button"
+            onClick={dismissCancelBanner}
+            aria-label="Dismiss"
+            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 opacity-70 hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
+          </button>
         </div>
       )}
       <header className="border-b border-border">
