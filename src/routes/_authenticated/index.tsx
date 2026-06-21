@@ -3,6 +3,7 @@ import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X, Sparkles } 
 import { useEffect, useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BoardCardSkeleton } from "@/components/Skeletons";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsPro } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/UpgradeModal";
@@ -251,7 +252,13 @@ function Dashboard() {
             </div>
           </div>
 
-          {loaded && projects.length === 0 && !selectMode ? (
+          {!loaded ? (
+            <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 lg:grid-cols-3 border border-border">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <BoardCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : loaded && projects.length === 0 && !selectMode ? (
             <div className="border border-border">
               <div className="mx-auto flex max-w-xl flex-col items-center gap-6 px-8 py-24 text-center">
                 <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
