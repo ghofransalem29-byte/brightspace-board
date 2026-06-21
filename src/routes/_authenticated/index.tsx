@@ -1,13 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Plus, ArrowUpRight, LogOut, Trash2, CheckSquare, Square, X, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useProjects, type Project } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsPro } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { WelcomeProModal } from "@/components/WelcomeProModal";
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    checkout: typeof s.checkout === "string" ? s.checkout : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Atelier — Mood Boards & Visual Curation" },
@@ -24,15 +28,44 @@ function formatDate(ts: number) {
 function Dashboard() {
   const { projects, loaded, create, remove } = useProjects();
   const navigate = useNavigate();
-  const { isPro } = useIsPro();
+  const { isPro, subscription, refresh: refreshPro } = useIsPro();
+  const search = Route.useSearch();
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+
+  // Show celebratory modal on return from successful checkout, refresh status.
+  useEffect(() => {
+    if (search.checkout === "success") {
+      setWelcomeOpen(true);
+      // Poll briefly for the webhook to land.
+      let cancelled = false;
+      const tick = async () => {
+        for (let i = 0; i < 6 && !cancelled; i++) {
+          await refreshPro();
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      };
+      tick();
+      navigate({ to: "/", replace: true, search: {} });
+      return () => { cancelled = true; };
+    }
+  }, [search.checkout, refreshPro, navigate]);
 
   const atBoardLimit = !isPro && projects.length >= 3;
+  // When a downgraded user has more than 3 boards, soft-lock the oldest ones.
+  // Most recent 3 stay active (projects is sorted desc by createdAt).
+  const lockedIds = !isPro && projects.length > 3
+    ? new Set(projects.slice(3).map((p) => p.id))
+    : new Set<string>();
+
+  const cancelEndDate = subscription?.cancel_at_period_end && subscription.current_period_end
+    ? new Date(subscription.current_period_end)
+    : null;
 
   const tryCreate = () => {
     if (atBoardLimit) {
@@ -86,6 +119,12 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {cancelEndDate && (
+        <div className="border-b border-amber-500/40 bg-amber-500/10 px-8 py-3 text-center font-mono-ui text-[11px] uppercase tracking-[0.2em] text-amber-900 dark:text-amber-200">
+          Pro ends on {cancelEndDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.{" "}
+          <Link to="/billing" className="underline hover:no-underline">Resubscribe</Link>
+        </div>
+      )}
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-8 py-5">
           <div className="flex items-baseline gap-3">
@@ -215,6 +254,8 @@ function Dashboard() {
                 selectMode={selectMode}
                 isSelected={selected.has(p.id)}
                 onToggleSelect={toggleSelected}
+                locked={lockedIds.has(p.id)}
+                onLockedClick={() => setUpgradeOpen(true)}
               />
             ))}
           </div>
@@ -269,6 +310,7 @@ function Dashboard() {
         title="Room for more boards."
         message="The free tier includes up to 3 boards. Upgrade to Atelier Pro for unlimited boards and share links."
       />
+      <WelcomeProModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>
   );
 }
@@ -280,6 +322,8 @@ function ProjectCard({
   selectMode,
   isSelected,
   onToggleSelect,
+  locked,
+  onLockedClick,
 }: {
   project: Project;
   index: number;
@@ -287,6 +331,8 @@ function ProjectCard({
   selectMode: boolean;
   isSelected: boolean;
   onToggleSelect: (id: string) => void;
+  locked?: boolean;
+  onLockedClick?: () => void;
 }) {
   const palette = project.palette.length > 0 ? project.palette : ["#1a1a1a", "#3a3a3a", "#7a7a7a", "#d4d4d4"];
   const handleDelete = (e: React.MouseEvent) => {
@@ -329,6 +375,40 @@ function ProjectCard({
           </div>
           <h3 className="font-display text-3xl leading-tight">{project.title}</h3>
           <p className={`mt-2 line-clamp-2 text-xs ${isSelected ? "opacity-70" : "text-muted-foreground"}`}>{project.description}</p>
+        </div>
+      </button>
+    );
+  }
+  if (locked) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); onLockedClick?.(); }}
+        className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden bg-background p-6 text-left"
+      >
+        <div
+          className="absolute inset-x-6 top-6 h-1/2 opacity-30"
+          style={{
+            background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
+          }}
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/85 backdrop-blur-sm">
+          <Sparkles className="h-5 w-5" strokeWidth={1.5} />
+          <p className="font-display text-2xl">Locked</p>
+          <p className="font-mono-ui text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            Upgrade to Pro to unlock
+          </p>
+          <span className="font-mono-ui mt-2 inline-flex items-center gap-1.5 border border-foreground bg-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background">
+            Upgrade
+          </span>
+        </div>
+        <div className="relative flex items-start justify-between">
+          <span className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            № {index.toString().padStart(3, "0")}
+          </span>
+        </div>
+        <div className="relative">
+          <h3 className="font-display text-3xl leading-tight text-muted-foreground">{project.title}</h3>
         </div>
       </button>
     );
