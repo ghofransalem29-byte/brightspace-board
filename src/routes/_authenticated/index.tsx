@@ -357,7 +357,8 @@ function ProjectCard({
   locked?: boolean;
   onLockedClick?: () => void;
 }) {
-  const palette = project.palette.length > 0 ? project.palette : ["#1a1a1a", "#3a3a3a", "#7a7a7a", "#d4d4d4"];
+  const thumbs = project.thumbs ?? [];
+  const palette = project.palette ?? [];
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -374,12 +375,9 @@ function ProjectCard({
           isSelected ? "bg-foreground text-background" : "bg-background hover:bg-secondary"
         }`}
       >
-        <div
-          className={`absolute inset-x-6 top-6 h-1/2 transition-opacity ${isSelected ? "opacity-30" : "opacity-100"}`}
-          style={{
-            background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
-          }}
-        />
+        <div className={`absolute inset-x-6 top-6 h-1/2 transition-opacity ${isSelected ? "opacity-30" : "opacity-100"}`}>
+          <BoardPreview thumbs={thumbs} palette={palette} title={project.title} />
+        </div>
         <div className="relative flex items-start justify-between">
           <span className={`font-mono-ui text-[10px] uppercase tracking-[0.2em] ${isSelected ? "" : "text-background mix-blend-difference"}`}>
             № {index.toString().padStart(3, "0")}
@@ -409,12 +407,9 @@ function ProjectCard({
         onClick={(e) => { e.preventDefault(); onLockedClick?.(); }}
         className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden bg-background p-6 text-left"
       >
-        <div
-          className="absolute inset-x-6 top-6 h-1/2 opacity-30"
-          style={{
-            background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
-          }}
-        />
+        <div className="absolute inset-x-6 top-6 h-1/2 opacity-30">
+          <BoardPreview thumbs={thumbs} palette={palette} title={project.title} />
+        </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/85 backdrop-blur-sm">
           <Sparkles className="h-5 w-5" strokeWidth={1.5} />
           <p className="font-display text-2xl">Locked</p>
@@ -442,12 +437,9 @@ function ProjectCard({
       params={{ id: project.id }}
       className="group relative flex aspect-[4/5] flex-col justify-between overflow-hidden bg-background p-6 transition-colors hover:bg-secondary"
     >
-      <div
-        className="absolute inset-x-6 top-6 h-1/2"
-        style={{
-          background: `linear-gradient(135deg, ${palette[0]} 0%, ${palette[1] ?? palette[0]} 40%, ${palette[2] ?? palette[0]} 75%, ${palette[3] ?? palette[0]} 100%)`,
-        }}
-      />
+      <div className="absolute inset-x-6 top-6 h-1/2 transition-transform duration-500 ease-out group-hover:scale-[1.03]">
+        <BoardPreview thumbs={thumbs} palette={palette} title={project.title} />
+      </div>
       <button
         onClick={handleDelete}
         aria-label="Delete board"
@@ -482,5 +474,54 @@ function ProjectCard({
         </div>
       </div>
     </Link>
+  );
+}
+
+function BoardPreview({ thumbs, palette, title }: { thumbs: string[]; palette: string[]; title: string }) {
+  if (thumbs.length > 0) {
+    const tiles = thumbs.slice(0, 4);
+    // Single image: full bleed. 2: side-by-side. 3+: 2x2 with last cell filled or doubled.
+    if (tiles.length === 1) {
+      return (
+        <div className="h-full w-full overflow-hidden border border-border/60 bg-muted">
+          <img src={tiles[0]} alt={title} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      );
+    }
+    if (tiles.length === 2) {
+      return (
+        <div className="grid h-full w-full grid-cols-2 gap-px overflow-hidden border border-border/60 bg-border">
+          {tiles.map((src, i) => (
+            <img key={i} src={src} alt="" className="h-full w-full bg-muted object-cover" loading="lazy" />
+          ))}
+        </div>
+      );
+    }
+    const cells = tiles.length === 3 ? [tiles[0], tiles[1], tiles[2], tiles[0]] : tiles;
+    return (
+      <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-px overflow-hidden border border-border/60 bg-border">
+        {cells.map((src, i) => (
+          <img key={i} src={src} alt="" className="h-full w-full bg-muted object-cover" loading="lazy" />
+        ))}
+      </div>
+    );
+  }
+  if (palette.length > 0) {
+    return (
+      <div className="flex h-full w-full flex-col justify-end border border-border/60 bg-muted/40">
+        <div className="flex h-6 w-full">
+          {palette.map((c, i) => (
+            <span key={i} className="h-full flex-1" style={{ backgroundColor: c }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-full w-full items-center justify-center border border-dashed border-border bg-muted/30">
+      <span className="font-mono-ui text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+        Empty board
+      </span>
+    </div>
   );
 }
