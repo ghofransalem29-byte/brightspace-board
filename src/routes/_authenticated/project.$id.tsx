@@ -1062,6 +1062,11 @@ function FeedbackPanel({
           <div>
             <p className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground">— Client feedback</p>
             <h2 className="mt-1 font-display text-2xl">{project.title}</h2>
+            <p className="font-mono-ui mt-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <span className="text-foreground">{openCount.toString().padStart(2, "0")} open</span>
+              <span className="px-1.5 text-border">·</span>
+              <span>{resolvedCount.toString().padStart(2, "0")} resolved</span>
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -1215,6 +1220,100 @@ function FeedbackPanel({
           )}
         </div>
       </aside>
+    </div>
+  );
+}
+
+/* ------------------------------ Comment Row ------------------------------- */
+
+function CommentRow({
+  entry,
+  onToggleResolved,
+  onSaveInternalNote,
+}: {
+  entry: FeedbackEntry;
+  onToggleResolved: (id: string, resolved: boolean) => Promise<void>;
+  onSaveInternalNote: (id: string, note: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(entry.internalNote ?? "");
+  useEffect(() => {
+    setDraft(entry.internalNote ?? "");
+  }, [entry.internalNote]);
+
+  return (
+    <div className="group/cmt border-l-2 border-border pl-3">
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {entry.clientName} · {relativeTime(entry.createdAt)}
+        </p>
+        <button
+          type="button"
+          onClick={() => onToggleResolved(entry.id, !entry.resolved)}
+          className={`font-mono-ui inline-flex shrink-0 items-center gap-1 border px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] transition-colors duration-200 ease-out ${
+            entry.resolved
+              ? "border-emerald-600/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+          }`}
+          aria-label={entry.resolved ? "Mark as open" : "Mark as resolved"}
+        >
+          {entry.resolved ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+          {entry.resolved ? "Resolved" : "Open"}
+        </button>
+      </div>
+      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{entry.body}</p>
+
+      {editing ? (
+        <div className="mt-2 space-y-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Private note — only you can see this."
+            rows={2}
+            maxLength={400}
+            className="w-full resize-none border border-border bg-secondary/40 px-3 py-2 text-xs leading-relaxed text-foreground placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(entry.internalNote ?? "");
+                setEditing(false);
+              }}
+              className="font-mono-ui text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await onSaveInternalNote(entry.id, draft);
+                setEditing(false);
+              }}
+              className="font-mono-ui inline-flex items-center gap-1 border border-foreground bg-foreground px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-background hover:bg-foreground/90"
+            >
+              <Check className="h-3 w-3" /> Save
+            </button>
+          </div>
+        </div>
+      ) : entry.internalNote ? (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="mt-2 block w-full border border-dashed border-border bg-secondary/30 px-3 py-2 text-left text-xs leading-relaxed text-muted-foreground transition-colors duration-200 ease-out hover:border-foreground hover:text-foreground"
+        >
+          <span className="font-mono-ui mr-2 text-[9px] uppercase tracking-[0.22em]">Private</span>
+          {entry.internalNote}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="font-mono-ui mt-2 inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground opacity-0 transition-opacity duration-200 ease-out hover:text-foreground group-hover/cmt:opacity-100"
+        >
+          <StickyNote className="h-3 w-3" /> Add internal note
+        </button>
+      )}
     </div>
   );
 }
