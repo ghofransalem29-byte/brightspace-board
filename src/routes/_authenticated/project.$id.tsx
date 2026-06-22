@@ -998,6 +998,8 @@ function FeedbackPanel({
   reactions,
   feedback,
   loaded,
+  onToggleResolved,
+  onSaveInternalNote,
   onClose,
 }: {
   project: Project;
@@ -1005,6 +1007,8 @@ function FeedbackPanel({
   reactions: Reaction[];
   feedback: FeedbackEntry[];
   loaded: boolean;
+  onToggleResolved: (id: string, resolved: boolean) => Promise<void>;
+  onSaveInternalNote: (id: string, note: string) => Promise<void>;
   onClose: () => void;
 }) {
   useEffect(() => {
