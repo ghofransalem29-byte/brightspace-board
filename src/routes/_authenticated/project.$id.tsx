@@ -1024,6 +1024,11 @@ function FeedbackPanel({
 
   const boardDecision = feedback.find((f) => f.decision && !f.itemId) ?? null;
   const boardNotes = feedback.filter((f) => !f.itemId && !f.decision);
+  // Counts: every actual comment (per-image OR board note, excluding the decision marker)
+  const trackable = feedback.filter((f) => !(f.decision && !f.itemId));
+  const openCount = trackable.filter((f) => !f.resolved).length;
+  const resolvedCount = trackable.filter((f) => f.resolved).length;
+  const [showResolved, setShowResolved] = useState(false);
   const status = boardDecision
     ? boardDecision.decision === "approve"
       ? { label: `Approved by ${boardDecision.clientName}`, tone: "text-emerald-600 dark:text-emerald-400 border-emerald-600/40 bg-emerald-500/5" }
@@ -1104,7 +1109,9 @@ function FeedbackPanel({
             ) : (
               <div className="space-y-5">
                 {active.map(({ image, love, pass, comments }) => {
-                  const unseen = comments.some((c) => !c.seenByOwner);
+                  const openComments = comments.filter((c) => !c.resolved);
+                  const resolvedComments = comments.filter((c) => c.resolved);
+                  const unseen = openComments.some((c) => !c.seenByOwner);
                   return (
                     <div
                       key={image.id}
@@ -1133,15 +1140,27 @@ function FeedbackPanel({
                             Loved by {love.map((r) => r.clientName).join(", ")}
                           </p>
                         )}
-                        {comments.length > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {comments.map((c) => (
-                              <div key={c.id} className="border-l-2 border-border pl-3">
-                                <p className="font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                                  {c.clientName} · {relativeTime(c.createdAt)}
-                                </p>
-                                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
-                              </div>
+                        {openComments.length > 0 && (
+                          <div className="mt-3 space-y-3">
+                            {openComments.map((c) => (
+                              <CommentRow
+                                key={c.id}
+                                entry={c}
+                                onToggleResolved={onToggleResolved}
+                                onSaveInternalNote={onSaveInternalNote}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {resolvedComments.length > 0 && showResolved && (
+                          <div className="mt-3 space-y-3 opacity-60">
+                            {resolvedComments.map((c) => (
+                              <CommentRow
+                                key={c.id}
+                                entry={c}
+                                onToggleResolved={onToggleResolved}
+                                onSaveInternalNote={onSaveInternalNote}
+                              />
                             ))}
                           </div>
                         )}
@@ -1159,17 +1178,31 @@ function FeedbackPanel({
               <p className="font-mono-ui mb-3 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
                 Overall notes
               </p>
-              <div className="space-y-4">
-                {boardNotes.map((c) => (
-                  <div key={c.id} className="border-l-2 border-border pl-3">
-                    <p className="font-mono-ui text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                      {c.clientName} · {relativeTime(c.createdAt)}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {boardNotes
+                  .filter((c) => !c.resolved || showResolved)
+                  .map((c) => (
+                    <div key={c.id} className={c.resolved ? "opacity-60" : ""}>
+                      <CommentRow
+                        entry={c}
+                        onToggleResolved={onToggleResolved}
+                        onSaveInternalNote={onSaveInternalNote}
+                      />
+                    </div>
+                  ))}
               </div>
             </section>
+          )}
+
+          {resolvedCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowResolved((v) => !v)}
+              className="font-mono-ui inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-200 ease-out hover:text-foreground"
+            >
+              {showResolved ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              {showResolved ? "Hide" : "Show"} resolved ({resolvedCount})
+            </button>
           )}
 
           {shareUrl && (
