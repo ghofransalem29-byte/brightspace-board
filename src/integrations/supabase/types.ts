@@ -256,6 +256,29 @@ export type Database = {
         Args: { _client_id: string; _id: string }
         Returns: boolean
       }
+      get_shared_feedback: {
+        Args: { _project_id: string }
+        Returns: {
+          body: string
+          client_id: string
+          client_name: string
+          created_at: string
+          decision: string
+          id: string
+          item_id: string
+        }[]
+      }
+      get_shared_moodboard_items: {
+        Args: { _token: string }
+        Returns: {
+          caption: string
+          created_at: string
+          id: string
+          project_id: string
+          src: string
+          tags: string[]
+        }[]
+      }
       get_shared_project: {
         Args: { _token: string }
         Returns: {
