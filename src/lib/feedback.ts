@@ -62,6 +62,8 @@ export interface FeedbackEntry {
   decision: Decision | null;
   seenByOwner: boolean;
   createdAt: number;
+  resolved: boolean;
+  internalNote: string | null;
 }
 
 type RxRow = {
@@ -81,6 +83,8 @@ type FbRow = {
   decision: Decision | null;
   seen_by_owner: boolean;
   created_at: string;
+  resolved?: boolean | null;
+  internal_note?: string | null;
 };
 
 function rxFrom(r: RxRow): Reaction {
@@ -96,18 +100,27 @@ function fbFrom(r: FbRow): FeedbackEntry {
     decision: r.decision,
     seenByOwner: r.seen_by_owner,
     createdAt: new Date(r.created_at).getTime(),
+    resolved: Boolean(r.resolved),
+    internalNote: r.internal_note ?? null,
   };
 }
 
 /* ----------------------------- Public hooks ------------------------------ */
 
-export function useBoardFeedback(projectId: string | null | undefined) {
+export function useBoardFeedback(
+  projectId: string | null | undefined,
+  options: { ownerView?: boolean } = {},
+) {
+  const ownerView = options.ownerView ?? false;
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!projectId) return;
+    const fbCols = ownerView
+      ? "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at, resolved, internal_note"
+      : "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at";
     const [{ data: rx }, { data: fb }] = await Promise.all([
       supabase
         .from("board_reactions")
@@ -115,14 +128,14 @@ export function useBoardFeedback(projectId: string | null | undefined) {
         .eq("project_id", projectId),
       supabase
         .from("board_feedback")
-        .select("id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at")
+        .select(fbCols)
         .eq("project_id", projectId)
         .order("created_at", { ascending: false }),
     ]);
     setReactions((rx ?? []).map((r) => rxFrom(r as RxRow)));
-    setFeedback((fb ?? []).map((r) => fbFrom(r as FbRow)));
+    setFeedback(((fb ?? []) as unknown as FbRow[]).map(fbFrom));
     setLoaded(true);
-  }, [projectId]);
+  }, [projectId, ownerView]);
 
   useEffect(() => {
     refresh();
@@ -232,7 +245,40 @@ export function useBoardFeedback(projectId: string | null | undefined) {
     if (error) console.error(error);
   }, [projectId, feedback]);
 
-  return { reactions, feedback, loaded, refresh, toggleReaction, addComment, markAllSeen };
+  const setResolved = useCallback(
+    async (id: string, resolved: boolean) => {
+      setFeedback((cur) => cur.map((f) => (f.id === id ? { ...f, resolved } : f)));
+      const { error } = await supabase
+        .from("board_feedback")
+        .update({ resolved })
+        .eq("id", id);
+      if (error) {
+        console.error(error);
+        toast.error("Couldn't update status. Please try again.");
+        setFeedback((cur) => cur.map((f) => (f.id === id ? { ...f, resolved: !resolved } : f)));
+      }
+    },
+    [],
+  );
+
+  const setInternalNote = useCallback(
+    async (id: string, note: string) => {
+      const trimmed = note.trim();
+      const value = trimmed.length ? trimmed : null;
+      setFeedback((cur) => cur.map((f) => (f.id === id ? { ...f, internalNote: value } : f)));
+      const { error } = await supabase
+        .from("board_feedback")
+        .update({ internal_note: value })
+        .eq("id", id);
+      if (error) {
+        console.error(error);
+        toast.error("Couldn't save internal note.");
+      }
+    },
+    [],
+  );
+
+  return { reactions, feedback, loaded, refresh, toggleReaction, addComment, markAllSeen, setResolved, setInternalNote };
 }
 
 /* ----------------------------- Time helper ------------------------------- */

@@ -22,8 +22,10 @@ export type Database = {
           created_at: string
           decision: string | null
           id: string
+          internal_note: string | null
           item_id: string | null
           project_id: string
+          resolved: boolean
           seen_by_owner: boolean
           updated_at: string
         }
@@ -34,8 +36,10 @@ export type Database = {
           created_at?: string
           decision?: string | null
           id?: string
+          internal_note?: string | null
           item_id?: string | null
           project_id: string
+          resolved?: boolean
           seen_by_owner?: boolean
           updated_at?: string
         }
@@ -46,8 +50,10 @@ export type Database = {
           created_at?: string
           decision?: string | null
           id?: string
+          internal_note?: string | null
           item_id?: string | null
           project_id?: string
+          resolved?: boolean
           seen_by_owner?: boolean
           updated_at?: string
         }
