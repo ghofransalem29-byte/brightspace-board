@@ -133,7 +133,7 @@ export function useBoardFeedback(
         .order("created_at", { ascending: false }),
     ]);
     setReactions((rx ?? []).map((r) => rxFrom(r as RxRow)));
-    setFeedback((fb ?? []).map((r) => fbFrom(r as FbRow)));
+    setFeedback(((fb ?? []) as unknown as FbRow[]).map(fbFrom));
     setLoaded(true);
   }, [projectId, ownerView]);
 
