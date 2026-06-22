@@ -90,7 +90,7 @@ function ProjectCanvas() {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const { reactions, feedback, loaded: fbLoaded, markAllSeen } = useBoardFeedback(project?.id);
+  const { reactions, feedback, loaded: fbLoaded, markAllSeen, setResolved, setInternalNote } = useBoardFeedback(project?.id, { ownerView: true });
   const { isPro } = useIsPro();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeMsg, setUpgradeMsg] = useState<string | undefined>(undefined);
@@ -328,6 +328,8 @@ function ProjectCanvas() {
           reactions={reactions}
           feedback={feedback}
           loaded={fbLoaded}
+          onToggleResolved={setResolved}
+          onSaveInternalNote={setInternalNote}
           onClose={() => setFeedbackOpen(false)}
         />
       )}
