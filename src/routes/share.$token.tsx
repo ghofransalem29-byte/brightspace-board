@@ -94,7 +94,7 @@ function SharedBoard() {
       }
       const { data: items } = await supabase
         .from("moodboard_items")
-        .select("*")
+        .select("id, src, caption, tags, created_at")
         .eq("project_id", p.id)
         .order("created_at", { ascending: false });
       if (cancelled) return;
@@ -110,7 +110,6 @@ function SharedBoard() {
         (items ?? []).map((r) => ({
           id: r.id,
           src: r.src,
-          storagePath: r.storage_path,
           caption: r.caption,
           addedAt: new Date(r.created_at).getTime(),
           tags: r.tags ?? [],
