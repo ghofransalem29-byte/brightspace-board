@@ -81,7 +81,7 @@ type FbRow = {
   client_name: string;
   body: string;
   decision: Decision | null;
-  seen_by_owner: boolean;
+  seen_by_owner?: boolean | null;
   created_at: string;
   resolved?: boolean | null;
   internal_note?: string | null;
@@ -98,7 +98,7 @@ function fbFrom(r: FbRow): FeedbackEntry {
     clientName: r.client_name,
     body: r.body,
     decision: r.decision,
-    seenByOwner: r.seen_by_owner,
+    seenByOwner: Boolean(r.seen_by_owner),
     createdAt: new Date(r.created_at).getTime(),
     resolved: Boolean(r.resolved),
     internalNote: r.internal_note ?? null,
@@ -120,7 +120,7 @@ export function useBoardFeedback(
     if (!projectId) return;
     const fbCols = ownerView
       ? "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at, resolved, internal_note"
-      : "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at";
+      : "id, item_id, client_id, client_name, body, decision, created_at";
     const [{ data: rx }, { data: fb }] = await Promise.all([
       supabase
         .from("board_reactions")
@@ -219,7 +219,7 @@ export function useBoardFeedback(
           body,
           decision,
         })
-        .select("id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at")
+        .select("id, item_id, client_id, client_name, body, decision, created_at")
         .single();
       if (error || !data) {
         console.error(error);
