@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy, MessageCircle, Heart } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Upload, X, Link2, ImagePlus, Maximize2, Share2, Check, Copy, MessageCircle, Heart, CheckCircle2, Circle, StickyNote, ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject, type Project, type BoardImage } from "@/lib/projects";
 import { ThemeToggle } from "@/components/theme-toggle";
