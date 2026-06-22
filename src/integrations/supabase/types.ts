@@ -256,6 +256,17 @@ export type Database = {
         Args: { _client_id: string; _id: string }
         Returns: boolean
       }
+      get_shared_project: {
+        Args: { _token: string }
+        Returns: {
+          cover: string
+          created_at: string
+          description: string
+          id: string
+          palette: string[]
+          title: string
+        }[]
+      }
       is_project_owner: { Args: { _project_id: string }; Returns: boolean }
       is_project_owner_pro: {
         Args: { _env: string; _project_id: string }

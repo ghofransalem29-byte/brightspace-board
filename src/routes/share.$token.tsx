@@ -14,11 +14,10 @@ import { ShareImageSkeleton } from "@/components/Skeletons";
 
 export const Route = createFileRoute("/share/$token")({
   loader: async ({ params }) => {
-    const { data: p } = await supabase
-      .from("projects")
-      .select("id,title,description,cover,palette,created_at,share_token")
-      .eq("share_token", params.token)
-      .maybeSingle();
+    const { data: rows } = await supabase.rpc("get_shared_project", {
+      _token: params.token,
+    });
+    const p = Array.isArray(rows) ? rows[0] : null;
     if (!p) return { project: null, firstImage: null as string | null };
     const { data: first } = await supabase
       .from("moodboard_items")
@@ -82,11 +81,10 @@ function SharedBoard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: p } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("share_token", token)
-        .maybeSingle();
+      const { data: rows } = await supabase.rpc("get_shared_project", {
+        _token: token,
+      });
+      const p = Array.isArray(rows) ? rows[0] : null;
       if (cancelled) return;
       if (!p) {
         setLoaded(true);
