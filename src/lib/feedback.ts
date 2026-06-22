@@ -62,6 +62,8 @@ export interface FeedbackEntry {
   decision: Decision | null;
   seenByOwner: boolean;
   createdAt: number;
+  resolved: boolean;
+  internalNote: string | null;
 }
 
 type RxRow = {
@@ -81,6 +83,8 @@ type FbRow = {
   decision: Decision | null;
   seen_by_owner: boolean;
   created_at: string;
+  resolved?: boolean | null;
+  internal_note?: string | null;
 };
 
 function rxFrom(r: RxRow): Reaction {
@@ -96,6 +100,8 @@ function fbFrom(r: FbRow): FeedbackEntry {
     decision: r.decision,
     seenByOwner: r.seen_by_owner,
     createdAt: new Date(r.created_at).getTime(),
+    resolved: Boolean(r.resolved),
+    internalNote: r.internal_note ?? null,
   };
 }
 
