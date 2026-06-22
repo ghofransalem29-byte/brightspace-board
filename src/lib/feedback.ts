@@ -118,20 +118,20 @@ export function useBoardFeedback(
 
   const refresh = useCallback(async () => {
     if (!projectId) return;
-    const fbCols = ownerView
-      ? "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at, resolved, internal_note"
-      : "id, item_id, client_id, client_name, body, decision, created_at";
-    const [{ data: rx }, { data: fb }] = await Promise.all([
-      supabase
-        .from("board_reactions")
-        .select("id, item_id, client_id, client_name, kind")
-        .eq("project_id", projectId),
-      supabase
-        .from("board_feedback")
-        .select(fbCols)
-        .eq("project_id", projectId)
-        .order("created_at", { ascending: false }),
-    ]);
+    const rxPromise = supabase
+      .from("board_reactions")
+      .select("id, item_id, client_id, client_name, kind")
+      .eq("project_id", projectId);
+    const fbPromise = ownerView
+      ? supabase
+          .from("board_feedback")
+          .select(
+            "id, item_id, client_id, client_name, body, decision, seen_by_owner, created_at, resolved, internal_note",
+          )
+          .eq("project_id", projectId)
+          .order("created_at", { ascending: false })
+      : supabase.rpc("get_shared_feedback", { _project_id: projectId });
+    const [{ data: rx }, { data: fb }] = await Promise.all([rxPromise, fbPromise]);
     setReactions((rx ?? []).map((r) => rxFrom(r as RxRow)));
     setFeedback(((fb ?? []) as unknown as FbRow[]).map(fbFrom));
     setLoaded(true);
