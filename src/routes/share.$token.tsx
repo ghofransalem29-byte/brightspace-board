@@ -19,13 +19,10 @@ export const Route = createFileRoute("/share/$token")({
     });
     const p = Array.isArray(rows) ? rows[0] : null;
     if (!p) return { project: null, firstImage: null as string | null };
-    const { data: first } = await supabase
-      .from("moodboard_items")
-      .select("src")
-      .eq("project_id", p.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { data: items } = await supabase.rpc("get_shared_moodboard_items", {
+      _token: params.token,
+    });
+    const first = Array.isArray(items) && items.length ? items[0] : null;
     return { project: p, firstImage: first?.src ?? p.cover ?? null };
   },
   head: ({ loaderData }) => {
@@ -90,11 +87,9 @@ function SharedBoard() {
         setLoaded(true);
         return;
       }
-      const { data: items } = await supabase
-        .from("moodboard_items")
-        .select("id, src, caption, tags, created_at")
-        .eq("project_id", p.id)
-        .order("created_at", { ascending: false });
+      const { data: items } = await supabase.rpc("get_shared_moodboard_items", {
+        _token: token,
+      });
       if (cancelled) return;
       setProject({
         id: p.id,
