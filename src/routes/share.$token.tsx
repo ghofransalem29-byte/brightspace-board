@@ -73,7 +73,7 @@ function SharedBoard() {
   const [ownerIsPro, setOwnerIsPro] = useState(false);
 
   const { identity, setName } = useClientIdentity();
-  const { reactions, feedback, toggleReaction, addComment } = useBoardFeedback(project?.id);
+  const { reactions, feedback, toggleReaction, addComment } = useBoardFeedback(project?.id, { shareToken: token });
 
   useEffect(() => {
     let cancelled = false;

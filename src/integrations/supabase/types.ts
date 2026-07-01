@@ -253,7 +253,7 @@ export type Database = {
     }
     Functions: {
       delete_my_reaction: {
-        Args: { _client_id: string; _id: string }
+        Args: { _client_id: string; _id: string; _token: string }
         Returns: boolean
       }
       get_shared_feedback: {
@@ -290,6 +290,35 @@ export type Database = {
           title: string
         }[]
       }
+      get_shared_reactions: {
+        Args: { _token: string }
+        Returns: {
+          client_id: string
+          client_name: string
+          created_at: string
+          id: string
+          item_id: string
+          kind: string
+          project_id: string
+        }[]
+      }
+      insert_shared_reaction: {
+        Args: {
+          _client_id: string
+          _client_name: string
+          _item_id: string
+          _kind: string
+          _token: string
+        }
+        Returns: {
+          client_id: string
+          client_name: string
+          id: string
+          item_id: string
+          kind: string
+          project_id: string
+        }[]
+      }
       is_project_owner: { Args: { _project_id: string }; Returns: boolean }
       is_project_owner_pro: {
         Args: { _env: string; _project_id: string }
@@ -306,6 +335,7 @@ export type Database = {
           _client_name: string
           _id: string
           _kind: string
+          _token: string
         }
         Returns: boolean
       }
