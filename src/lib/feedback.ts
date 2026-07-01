@@ -109,19 +109,24 @@ function fbFrom(r: FbRow): FeedbackEntry {
 
 export function useBoardFeedback(
   projectId: string | null | undefined,
-  options: { ownerView?: boolean } = {},
+  options: { ownerView?: boolean; shareToken?: string | null } = {},
 ) {
   const ownerView = options.ownerView ?? false;
+  const shareToken = options.shareToken ?? null;
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [feedback, setFeedback] = useState<FeedbackEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!projectId) return;
-    const rxPromise = supabase
-      .from("board_reactions")
-      .select("id, item_id, client_id, client_name, kind")
-      .eq("project_id", projectId);
+    const rxPromise = ownerView
+      ? supabase
+          .from("board_reactions")
+          .select("id, item_id, client_id, client_name, kind")
+          .eq("project_id", projectId)
+      : shareToken
+        ? supabase.rpc("get_shared_reactions", { _token: shareToken })
+        : Promise.resolve({ data: [] as RxRow[] });
     const fbPromise = ownerView
       ? supabase
           .from("board_feedback")
@@ -135,7 +140,7 @@ export function useBoardFeedback(
     setReactions((rx ?? []).map((r) => rxFrom(r as RxRow)));
     setFeedback(((fb ?? []) as unknown as FbRow[]).map(fbFrom));
     setLoaded(true);
-  }, [projectId, ownerView]);
+  }, [projectId, ownerView, shareToken]);
 
   useEffect(() => {
     refresh();
@@ -157,6 +162,7 @@ export function useBoardFeedback(
         const { error } = await supabase.rpc("delete_my_reaction", {
           _id: existing.id,
           _client_id: identity.id,
+          _token: shareToken ?? "",
         });
         if (error) {
           console.error(error);
@@ -175,6 +181,7 @@ export function useBoardFeedback(
           _client_id: identity.id,
           _kind: kind,
           _client_name: clientName,
+          _token: shareToken ?? "",
         });
         if (error) {
           console.error(error);
@@ -183,26 +190,23 @@ export function useBoardFeedback(
         }
         return;
       }
-      // insert
-      const { data, error } = await supabase
-        .from("board_reactions")
-        .insert({
-          project_id: projectId,
-          item_id: itemId,
-          client_id: identity.id,
-          client_name: clientName,
-          kind,
-        })
-        .select("id, item_id, client_id, client_name, kind")
-        .single();
-      if (error || !data) {
+      // insert via token-gated RPC
+      const { data, error } = await supabase.rpc("insert_shared_reaction", {
+        _token: shareToken ?? "",
+        _item_id: itemId,
+        _client_id: identity.id,
+        _client_name: clientName,
+        _kind: kind,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) {
         console.error(error);
         toast.error(error?.message ?? "Couldn't save your reaction. Please try again.");
         return;
       }
-      setReactions((cur) => [...cur, rxFrom(data as RxRow)]);
+      setReactions((cur) => [...cur, rxFrom(row as RxRow)]);
     },
-    [projectId, reactions, refresh],
+    [projectId, reactions, refresh, shareToken],
   );
 
   const addComment = useCallback(
